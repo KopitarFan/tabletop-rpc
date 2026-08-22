@@ -139,6 +139,7 @@ class GameEngine(
         when (game.templateId) {
             TIC_TAC_TOE.id -> startTicTacToe(game, command)
             BLACKJACK.id -> startBlackjack(game, command)
+            LUDO.id -> startLudo(game, command)
             else -> fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unsupported template: ${game.templateId}")
         }
     }
@@ -165,6 +166,29 @@ class GameEngine(
         updateBlackjackValues(game, revealDealer = false)
         game.record("game_started", command.actorId, mapOf("template_id" to BLACKJACK.id))
         if (blackjackTotal(deck.hands.getValue(game.players.first().id.toString())) == 21) resolveBlackjack(game, command.actorId)
+    }
+
+    private fun startLudo(game: MutableGame, command: Command) {
+        if (game.players.size != 2) fail(HttpStatus.CONFLICT, "Mini Ludo requires exactly two players")
+        if (command.actorId !in game.players.map { it.id }) fail(HttpStatus.FORBIDDEN, "Actor is not a player in this game")
+        game.players.forEach { player ->
+            repeat(LUDO_PIECES_PER_PLAYER) { index ->
+                val piece = Piece(
+                    id = "pawn-${player.seat}-$index",
+                    kind = if (player.seat == 0) "coral" else "cyan",
+                    ownerId = player.id,
+                    location = "yard-${player.seat}",
+                    attributes = mapOf("progress" to -1),
+                )
+                game.pieces[piece.id] = piece
+            }
+        }
+        game.dice[LUDO_DIE] = Die(id = LUDO_DIE, sides = 6)
+        game.values["last_roll"] = null
+        game.values["movable_piece_ids"] = emptyList<String>()
+        game.status = GameStatus.ACTIVE
+        game.currentPlayerId = game.players.first().id
+        game.record("game_started", command.actorId, mapOf("template_id" to LUDO.id))
     }
 
     private fun place(game: MutableGame, command: Command) {
@@ -270,6 +294,10 @@ class GameEngine(
     }
 
     private fun move(game: MutableGame, command: Command) {
+        if (game.templateId == LUDO.id) {
+            moveLudo(game, command)
+            return
+        }
         requireTurn(game, command.actorId)
         val pieceId = text(command.payload, "piece_id")
         val destination = text(command.payload, "to")
@@ -319,7 +347,10 @@ class GameEngine(
     }
 
     private fun roll(game: MutableGame, command: Command) {
-        requireTurn(game, command.actorId)
+        val actor = requireTurn(game, command.actorId)
+        if (game.templateId == LUDO.id && game.values["last_roll"] != null) {
+            fail(HttpStatus.CONFLICT, "Move a pawn before rolling again")
+        }
         val values = mutableMapOf<String, Int>()
         command.payload.path("dice_ids").forEach { node ->
             val id = node.asText()
@@ -329,6 +360,72 @@ class GameEngine(
             values[id] = value
         }
         game.record("dice_rolled", command.actorId, mapOf("values" to values))
+        if (game.templateId == LUDO.id) {
+            val value = values[LUDO_DIE] ?: fail(HttpStatus.UNPROCESSABLE_ENTITY, "Mini Ludo requires dice_ids containing $LUDO_DIE")
+            val movable = game.pieces.values.filter { piece ->
+                piece.ownerId == actor.id && ludoDestination(progress(piece), value) != null
+            }.map { it.id }
+            game.values["last_roll"] = value
+            game.values["movable_piece_ids"] = movable
+            if (movable.isEmpty()) {
+                game.values["last_roll"] = null
+                game.record("no_legal_move", actor.id, mapOf("roll" to value))
+                advance(game, actor.id)
+            }
+        }
+    }
+
+    private fun moveLudo(game: MutableGame, command: Command) {
+        val actor = requireTurn(game, command.actorId)
+        val roll = game.values["last_roll"] as? Int ?: fail(HttpStatus.CONFLICT, "Roll before moving a pawn")
+        val pieceId = text(command.payload, "piece_id")
+        val movable = game.values["movable_piece_ids"] as? List<*> ?: emptyList<Any?>()
+        if (pieceId !in movable) fail(HttpStatus.UNPROCESSABLE_ENTITY, "Pawn cannot use the current roll")
+        val piece = game.pieces[pieceId] ?: fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unknown pawn")
+        if (piece.ownerId != actor.id) fail(HttpStatus.FORBIDDEN, "Actor does not own this pawn")
+        val destinationProgress = ludoDestination(progress(piece), roll)
+            ?: fail(HttpStatus.UNPROCESSABLE_ENTITY, "Pawn cannot use the current roll")
+        val destination = ludoLocation(actor.seat, destinationProgress)
+        var captured = false
+        if (destination.startsWith("track-") && destination !in LUDO_SAFE_SPACES) {
+            game.pieces.values.filter { it.ownerId != actor.id && it.location == destination }.forEach { opponent ->
+                val seat = game.players.first { it.id == opponent.ownerId }.seat
+                game.pieces[opponent.id] = opponent.copy(location = "yard-$seat", attributes = mapOf("progress" to -1))
+                captured = true
+                game.record("piece_captured", actor.id, mapOf("piece_id" to opponent.id, "by" to piece.id))
+            }
+        }
+        game.pieces[piece.id] = piece.copy(location = destination, attributes = mapOf("progress" to destinationProgress))
+        game.values["last_roll"] = null
+        game.values["movable_piece_ids"] = emptyList<String>()
+        game.record("piece_moved", actor.id, mapOf("piece_id" to piece.id, "to" to destination, "roll" to roll))
+
+        if (game.pieces.values.filter { it.ownerId == actor.id }.all { progress(it) == LUDO_FINISH }) {
+            game.status = GameStatus.FINISHED
+            game.currentPlayerId = null
+            game.values["winner"] = actor.id.toString()
+            game.record("game_finished", actor.id, mapOf("winner" to actor.id.toString()))
+        } else if (roll == 6 || captured) {
+            game.record("extra_turn", actor.id, mapOf("reason" to if (captured) "capture" else "six"))
+        } else {
+            advance(game, actor.id)
+        }
+    }
+
+    private fun progress(piece: Piece): Int = (piece.attributes["progress"] as? Number)?.toInt() ?: -1
+
+    private fun ludoDestination(progress: Int, roll: Int): Int? = when {
+        progress == -1 && roll == 6 -> 0
+        progress == -1 -> null
+        progress + roll > LUDO_FINISH -> null
+        progress >= LUDO_FINISH -> null
+        else -> progress + roll
+    }
+
+    private fun ludoLocation(seat: Int, progress: Int): String = when {
+        progress < LUDO_TRACK_LENGTH -> "track-${(LUDO_STARTS[seat] + progress) % LUDO_TRACK_LENGTH}"
+        progress < LUDO_FINISH -> "home-$seat-${progress - LUDO_TRACK_LENGTH}"
+        else -> "finished-$seat"
     }
 
     private fun setValue(game: MutableGame, command: Command) {
@@ -408,6 +505,16 @@ class GameEngine(
             } else if (templateId == BLACKJACK.id) {
                 values["outcome"] = null
                 values["dealer_revealed"] = false
+            } else if (templateId == LUDO.id) {
+                values["winner"] = null
+                for (index in 0 until LUDO_TRACK_LENGTH) spaces["track-$index"] = Space("track-$index", "Track ${index + 1}")
+                repeat(2) { seat ->
+                    spaces["yard-$seat"] = Space("yard-$seat", "Player ${seat + 1} yard")
+                    repeat(LUDO_HOME_LENGTH) { index ->
+                        spaces["home-$seat-$index"] = Space("home-$seat-$index", "Player ${seat + 1} home ${index + 1}")
+                    }
+                    spaces["finished-$seat"] = Space("finished-$seat", "Player ${seat + 1} finish")
+                }
             }
         }
 
@@ -469,9 +576,24 @@ class GameEngine(
             description = "A single player competes against a server-authoritative dealer.",
         )
 
-        private val TEMPLATES = listOf(TIC_TAC_TOE, BLACKJACK)
+        private val LUDO = TemplateSummary(
+            id = "mini-ludo",
+            name = "Mini Ludo",
+            minPlayers = 2,
+            maxPlayers = 2,
+            description = "A compact two-player race with dice entry, captures, home paths, and extra turns.",
+        )
+
+        private val TEMPLATES = listOf(TIC_TAC_TOE, BLACKJACK, LUDO)
         private const val BLACKJACK_DECK = "shoe"
         private const val DEALER_HAND = "dealer"
+        private const val LUDO_DIE = "ludo-d6"
+        private const val LUDO_TRACK_LENGTH = 24
+        private const val LUDO_HOME_LENGTH = 4
+        private const val LUDO_FINISH = LUDO_TRACK_LENGTH + LUDO_HOME_LENGTH
+        private const val LUDO_PIECES_PER_PLAYER = 2
+        private val LUDO_STARTS = listOf(0, 12)
+        private val LUDO_SAFE_SPACES = setOf("track-0", "track-12")
 
         private fun standardDeck(): List<Card> = listOf("clubs", "diamonds", "hearts", "spades").flatMap { suit ->
             listOf("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K").map { rank ->

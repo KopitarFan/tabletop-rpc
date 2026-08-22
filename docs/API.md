@@ -4,9 +4,9 @@ The Kotlin service exposes its JSON API at `http://localhost:8080`.
 Interactive Swagger UI is available at `/docs`, and the machine-readable
 OpenAPI 3 specification is available at `/openapi.json`.
 
-The playable Tic-Tac-Toe reference client is served from `/`, and Blackjack is
-served from `/blackjack.html`. Their activity panels show the same public calls
-documented below while you play.
+The playable Tic-Tac-Toe reference client is served from `/`, Blackjack from
+`/blackjack.html`, and Mini Ludo from `/ludo.html`. Their activity panels show
+the same public calls documented below while you play.
 
 ## Resources
 
@@ -122,3 +122,17 @@ currently contains the complete deck and every hand. The web client hides the
 dealer's hole card visually, but a production card game needs actor-specific
 state projections so unauthorized clients never receive hidden cards. That
 projection boundary is the next service capability to design.
+
+## Mini Ludo example
+
+Create a game with `"template_id":"mini-ludo"`, join two players, and send
+`start_game`. Each turn begins with `roll_dice` and
+`{"dice_ids":["ludo-d6"]}`. If `board.values.movable_piece_ids` is non-empty,
+choose one and submit `move_piece` with its `piece_id`. The server calculates
+the destination, enforces six-to-enter and exact-home rules, resolves captures,
+awards extra turns, and detects the winner.
+
+Ludo exposed a second design pressure: a command name such as `move_piece` has
+different payload and validation rules depending on the template. Clients need
+machine-readable, template-specific command schemas and current legal-action
+hints instead of relying on a global prose command catalog.

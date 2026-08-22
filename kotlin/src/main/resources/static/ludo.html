@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An API-powered Mini Ludo reference client for TabletopRPC.">
+  <title>TabletopRPC — Mini Ludo</title>
+  <link rel="icon" type="image/png" href="tabletoprpc-logo.png">
+  <link rel="stylesheet" href="tabletoprpc-v2.css"><link rel="stylesheet" href="ludo.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <a class="brand" href="./"><img class="brand-mark" src="tabletoprpc-logo.png" alt=""><span>TabletopRPC</span></a>
+      <nav class="demo-nav"><a href="blackjack.html">Blackjack</a><a href="docs">Explore the API ↗</a></nav>
+    </header>
+    <section id="ludo-welcome" class="ludo-welcome">
+      <div><p class="eyebrow">Reference client · Mini Ludo</p><h1>Roll. Race.<br><em>Call the API.</em></h1><p class="lede">Race two pawns around the track against a computer opponent. The server owns every roll, legal move, capture, and extra turn.</p></div>
+      <form id="ludo-start" class="start-card">
+        <div class="card-heading"><span class="live-dot"></span><span>Start a race</span></div>
+        <label for="ludo-name">Your display name</label><input id="ludo-name" maxlength="60" placeholder="e.g. Ada" autocomplete="nickname" required>
+        <button class="primary-button" type="submit">Create game <span>→</span></button><p id="ludo-error" class="form-error" role="alert"></p>
+      </form>
+    </section>
+    <section id="ludo-game" class="ludo-game hidden">
+      <div class="game-topline"><div><p class="eyebrow">Live API session</p><h1>Mini Ludo</h1></div><button id="ludo-new" class="secondary-button" type="button">New race</button></div>
+      <div class="ludo-layout">
+        <aside class="status-card"><div class="status-label">Race status</div><p id="ludo-message" class="status-message">Preparing the track…</p><div id="ludo-players" class="players"></div><div class="dice-panel"><button id="roll" class="die" type="button" aria-label="Roll the die">–</button><small id="roll-hint">Roll to begin</small></div></aside>
+        <div class="ludo-board-wrap"><div id="ludo-board" class="ludo-board" aria-label="Mini Ludo board"></div><div class="board-key"><span><i class="coral"></i>You</span><span><i class="cyan"></i>Computer</span><span><b>★</b>Safe</span></div></div>
+        <aside class="activity-card"><div class="activity-heading"><span>API activity</span><span class="live-pill">LIVE</span></div><ol id="ludo-activity" class="activity-list" aria-live="polite"></ol><div class="api-meter"><div><span>State version</span><strong id="ludo-version">0</strong></div><div><span>Last event</span><strong id="ludo-event">—</strong></div></div><a href="docs" class="activity-docs">Open Swagger documentation <span>↗</span></a></aside>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="ludo.js"></script>
+</body>
+</html>
