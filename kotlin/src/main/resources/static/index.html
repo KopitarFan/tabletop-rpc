@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A playable reference client for MeepleRPC.">
+  <title>MeepleRPC — Tic-Tac-Toe</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="MeepleRPC home">
+        <span class="brand-mark" aria-hidden="true">BG</span>
+        <span>MeepleRPC</span>
+      </a>
+      <a class="api-link" href="/docs">Explore the API <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+      <div class="intro">
+        <p class="eyebrow">Reference client · Tic-Tac-Toe</p>
+        <h1 id="welcome-title">Every move is<br><em>an API call.</em></h1>
+        <p class="lede">Create a match, invite a friend, or challenge the computer. The browser never edits the board—it asks the Kotlin engine to validate every move.</p>
+        <div class="protocol-strip" aria-label="How a turn works">
+          <span>01 · Send intent</span><i></i><span>02 · Validate</span><i></i><span>03 · New state</span>
+        </div>
+      </div>
+
+      <form id="start-form" class="start-card">
+        <div class="card-heading">
+          <span class="live-dot"></span>
+          <span>Start a new match</span>
+        </div>
+        <label for="player-name">Your display name</label>
+        <input id="player-name" name="name" maxlength="60" placeholder="e.g. Ada" autocomplete="nickname" required>
+        <fieldset>
+          <legend>Choose an opponent</legend>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="friend" checked>
+            <span class="mode-copy"><strong>Invite a friend</strong><small>Create a shareable game link</small></span>
+            <span class="mode-icon" aria-hidden="true">↗</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="computer">
+            <span class="mode-copy"><strong>Play the computer</strong><small>A thoughtful API-powered opponent</small></span>
+            <span class="mode-icon" aria-hidden="true">⌁</span>
+          </label>
+        </fieldset>
+        <button class="primary-button" type="submit">Create game <span aria-hidden="true">→</span></button>
+        <p id="start-error" class="form-error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="join" class="join-panel hidden" aria-labelledby="join-title">
+      <div class="join-card">
+        <p class="eyebrow">You’ve been invited</p>
+        <h1 id="join-title">Take the open seat.</h1>
+        <p id="join-game-name" class="lede"></p>
+        <form id="join-form">
+          <label for="join-name">Your display name</label>
+          <input id="join-name" maxlength="60" placeholder="e.g. Grace" autocomplete="nickname" required>
+          <button class="primary-button" type="submit">Join game <span aria-hidden="true">→</span></button>
+          <p id="join-error" class="form-error" role="alert"></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="game" class="game-view hidden" aria-labelledby="game-title">
+      <div class="game-topline">
+        <div>
+          <p class="eyebrow">Live API session</p>
+          <h1 id="game-title">Tic-Tac-Toe</h1>
+        </div>
+        <div class="game-actions">
+          <button id="copy-invite" class="secondary-button" type="button">Copy invite link</button>
+          <button id="new-game" class="icon-button" type="button" aria-label="Start a new game">↻</button>
+        </div>
+      </div>
+
+      <div class="play-layout">
+        <aside class="status-card">
+          <div class="status-label">Match status</div>
+          <p id="status-message" class="status-message">Preparing the board…</p>
+          <div id="players" class="players"></div>
+          <div id="invite-box" class="invite-box hidden">
+            <small>Share this link</small>
+            <code id="invite-url"></code>
+          </div>
+          <div class="api-meter">
+            <div><span>State version</span><strong id="version">0</strong></div>
+            <div><span>Last event</span><strong id="last-event">—</strong></div>
+          </div>
+        </aside>
+
+        <div class="board-wrap">
+          <div id="board" class="board" role="grid" aria-label="Tic-Tac-Toe board"></div>
+          <p id="board-hint" class="board-hint">Waiting for another player</p>
+        </div>
+
+        <aside class="activity-card">
+          <div class="activity-heading"><span>API activity</span><span class="live-pill">LIVE</span></div>
+          <ol id="activity" class="activity-list" aria-live="polite"></ol>
+          <a href="/docs" class="activity-docs">Open Swagger documentation <span>↗</span></a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <template id="activity-template">
+    <li><span class="method">POST</span><div><code></code><small></small></div></li>
+  </template>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

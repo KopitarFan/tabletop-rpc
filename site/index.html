@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MeepleRPC is an open protocol and Kotlin engine for building online tabletop games.">
+  <meta property="og:title" content="MeepleRPC — One protocol. Every tabletop.">
+  <meta property="og:description" content="Build online board games around an authoritative, versioned, event-driven API.">
+  <meta property="og:type" content="website">
+  <title>MeepleRPC — The board game API</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav shell">
+    <a class="logo" href="#top"><span>MR</span>MeepleRPC</a>
+    <nav aria-label="Main navigation">
+      <a href="#protocol">Protocol</a>
+      <a href="api.html">API</a>
+      <a href="https://github.com/KopitarFan/meeple-rpc">GitHub</a>
+      <a class="nav-cta" href="https://github.com/KopitarFan/meeple-rpc#run-it">Run the demo</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="kicker">Open source · Kotlin · Spring Boot</p>
+        <h1>One protocol.<br><em>Every tabletop.</em></h1>
+        <p class="hero-lede">MeepleRPC is an authoritative game engine and HTTP API for cards, dice, boards, pieces, turns, and whatever your next game invents.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/KopitarFan/meeple-rpc#run-it">Play Tic-Tac-Toe <span>→</span></a>
+          <a class="button secondary" href="api.html">Explore the API <span>↗</span></a>
+        </div>
+        <div class="proof"><span><i></i> MIT licensed</span><span>Versioned commands</span><span>Swagger documented</span></div>
+      </div>
+
+      <div class="terminal" aria-label="Example API call">
+        <div class="terminal-bar"><span></span><span></span><span></span><b>POST /commands</b></div>
+        <pre><code><span class="dim">{</span>
+  <span class="key">"type"</span>: <span class="value">"place_piece"</span>,
+  <span class="key">"actor_id"</span>: <span class="value">"7b2…e91"</span>,
+  <span class="key">"payload"</span>: <span class="dim">{</span>
+    <span class="key">"space_id"</span>: <span class="value">"0-0"</span>
+  <span class="dim">}</span>,
+  <span class="key">"expected_version"</span>: <span class="number">3</span>,
+  <span class="key">"idempotency_key"</span>: <span class="value">"turn-001"</span>
+<span class="dim">}</span></code></pre>
+        <div class="response"><span>200 OK</span><span>state.version → 5</span><span>2 events</span></div>
+      </div>
+    </section>
+
+    <section class="marquee" aria-label="Supported tabletop objects">
+      <div>BOARDS <b>◆</b> SPACES <b>◆</b> PIECES <b>◆</b> CARDS <b>◆</b> DECKS <b>◆</b> DICE <b>◆</b> TURNS <b>◆</b> EVENTS</div>
+    </section>
+
+    <section id="protocol" class="protocol shell section">
+      <div class="section-intro">
+        <p class="kicker">Built for real clients</p>
+        <h2>More than<br>game-state CRUD.</h2>
+        <p>Clients describe intent. MeepleRPC owns the truth, validates the move, applies it once, and returns a fresh snapshot plus ordered events.</p>
+      </div>
+      <div class="feature-grid">
+        <article><span>01</span><h3>Stale moves lose safely</h3><p>Optimistic version checks stop two clients from quietly overwriting the same turn.</p></article>
+        <article><span>02</span><h3>Retries happen once</h3><p>Idempotency keys make unreliable networks boring instead of game-breaking.</p></article>
+        <article><span>03</span><h3>Randomness stays fair</h3><p>Dice rolls and deck shuffles happen on the authoritative server, never a player’s device.</p></article>
+        <article><span>04</span><h3>Events keep clients in sync</h3><p>Poll ordered changes today; add SSE or WebSockets tomorrow without changing commands.</p></article>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <div class="shell demo-grid">
+        <div class="mini-board" aria-hidden="true">
+          <span class="x">×</span><span></span><span class="o">○</span>
+          <span></span><span class="x">×</span><span></span>
+          <span class="o">○</span><span></span><span class="x">×</span>
+        </div>
+        <div class="demo-copy">
+          <p class="kicker">Reference client included</p>
+          <h2>See the API<br>play its own game.</h2>
+          <p>Create an invite link for a friend or challenge an unbeatable minimax opponent. Humans and computers submit the same public commands.</p>
+          <a class="button light" href="https://github.com/KopitarFan/meeple-rpc#run-it">Launch locally in one command <span>→</span></a>
+          <small>Public hosted gameplay is next on the roadmap; GitHub Pages hosts this static project site.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta shell section">
+      <p class="kicker">Your rules. One reliable engine.</p>
+      <h2>Build the table<br>people meet around.</h2>
+      <div>
+        <a class="button primary" href="https://github.com/KopitarFan/meeple-rpc">View on GitHub <span>↗</span></a>
+        <a class="text-link" href="api.html">Read the API reference →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <a class="logo" href="#top"><span>MR</span>MeepleRPC</a>
+    <p>Open source under the MIT License.</p>
+    <div><a href="https://github.com/KopitarFan/meeple-rpc">GitHub</a><a href="api.html">API reference</a></div>
+  </footer>
+</body>
+</html>
+
