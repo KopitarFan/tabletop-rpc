@@ -1,0 +1,20 @@
+# Production routes on the shared Vultr host.
+
+allofmeapp.com {
+	root * /var/www/allofme-site
+	encode zstd gzip
+	file_server
+}
+
+www.allofmeapp.com {
+	redir https://allofmeapp.com{uri} permanent
+}
+
+api.allofmeapp.com {
+	reverse_proxy 127.0.0.1:3000
+}
+
+tabletoprpc.miguelrodriguez.net {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+}

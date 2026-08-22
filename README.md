@@ -1,10 +1,10 @@
-# MeepleRPC
+# TabletopRPC
 
 **One protocol. Every tabletop.**
 
-[Project website](https://kopitarfan.github.io/meeple-rpc/) ·
-[API reference](https://kopitarfan.github.io/meeple-rpc/api.html) ·
-[Playable demo setup](#run-it)
+[Project website](https://kopitarfan.github.io/tabletop-rpc/) ·
+[Live demo](https://tabletoprpc.miguelrodriguez.net/) ·
+[Swagger API](https://tabletoprpc.miguelrodriguez.net/docs)
 
 A game-agnostic **Kotlin/Spring Boot** web service for building online
 board-game clients.
@@ -53,6 +53,11 @@ Open [http://localhost:8080](http://localhost:8080) to play the reference
 client. Invite links work anywhere the service URL is reachable, so a deployed
 instance can host games between different devices.
 
+The public demo is available at
+[tabletoprpc.miguelrodriguez.net](https://tabletoprpc.miguelrodriguez.net/),
+with live
+[Swagger documentation](https://tabletoprpc.miguelrodriguez.net/docs).
+
 ## Documentation
 
 - Swagger UI: `/docs`
@@ -83,6 +88,7 @@ document. GitHub Actions runs it on every push and pull request.
 kotlin/     Spring Boot service, Kotlin data models, JUnit integration suite
             and zero-build browser reference client
 docs/       Protocol walkthrough and architecture notes
+deploy/     Production Compose and Caddy configuration for the public demo
 compose.yaml
 ```
 

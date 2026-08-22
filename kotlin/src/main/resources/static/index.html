@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A playable reference client for MeepleRPC.">
-  <title>MeepleRPC — Tic-Tac-Toe</title>
-  <link rel="stylesheet" href="/styles.css">
+  <meta name="description" content="A playable reference client for TabletopRPC.">
+  <title>TabletopRPC — Tic-Tac-Toe</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="shell">
     <header class="masthead">
-      <a class="brand" href="/" aria-label="MeepleRPC home">
+      <a class="brand" href="./" aria-label="TabletopRPC home">
         <span class="brand-mark" aria-hidden="true">BG</span>
-        <span>MeepleRPC</span>
+        <span>TabletopRPC</span>
       </a>
-      <a class="api-link" href="/docs">Explore the API <span aria-hidden="true">↗</span></a>
+      <a class="api-link" href="docs">Explore the API <span aria-hidden="true">↗</span></a>
     </header>
 
     <section id="welcome" class="welcome" aria-labelledby="welcome-title">
@@ -101,7 +101,7 @@
         <aside class="activity-card">
           <div class="activity-heading"><span>API activity</span><span class="live-pill">LIVE</span></div>
           <ol id="activity" class="activity-list" aria-live="polite"></ol>
-          <a href="/docs" class="activity-docs">Open Swagger documentation <span>↗</span></a>
+          <a href="docs" class="activity-docs">Open Swagger documentation <span>↗</span></a>
         </aside>
       </div>
     </section>
@@ -110,6 +110,6 @@
   <template id="activity-template">
     <li><span class="method">POST</span><div><code></code><small></small></div></li>
   </template>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

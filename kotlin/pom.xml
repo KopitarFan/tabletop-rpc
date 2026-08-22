@@ -13,7 +13,7 @@
   <groupId>dev.boardgamerpc</groupId>
   <artifactId>boardgame-rpc-kotlin</artifactId>
   <version>0.1.0</version>
-  <name>MeepleRPC</name>
+  <name>TabletopRPC</name>
   <description>An authoritative Kotlin API for online tabletop games</description>
 
   <properties>

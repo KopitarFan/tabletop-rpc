@@ -15,14 +15,14 @@ class OpenApiConfiguration {
     fun boardGameOpenApi(): OpenAPI = OpenAPI()
         .info(
             Info()
-            .title("MeepleRPC")
+            .title("TabletopRPC")
             .version("0.1.0")
             .summary("Authoritative APIs for online tabletop games")
             .description(
                 "Create game sessions and submit versioned, idempotent commands for boards, " +
                     "cards, dice, pieces, turns, and custom tabletop state.",
             )
-            .contact(Contact().name("MeepleRPC contributors"))
+            .contact(Contact().name("TabletopRPC contributors"))
                 .license(License().name("MIT").identifier("MIT")),
         )
         .tags(

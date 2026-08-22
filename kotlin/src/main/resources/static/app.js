@@ -91,7 +91,7 @@ async function createGame(name, mode) {
   }
 
   saveIdentity(newIdentity);
-  history.replaceState({}, "", `?game=${game.id}`);
+  history.replaceState({}, "", `/?game=${game.id}`);
   enterGame();
 }
 
