@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const views = [$("#welcome"), $("#join"), $("#game")];
+const demoShowcase = $("#game-demos");
 const sessionKey = (gameId) => `boardgame-rpc:${gameId}`;
 
 let gameState = null;
@@ -10,6 +11,7 @@ let lastEventSequence = 0;
 
 function show(view) {
   views.forEach((item) => item.classList.toggle("hidden", item !== view));
+  demoShowcase.classList.toggle("hidden", view !== $("#welcome"));
 }
 
 function gameIdFromUrl() {
