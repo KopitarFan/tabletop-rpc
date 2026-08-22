@@ -4,8 +4,9 @@ The Kotlin service exposes its JSON API at `http://localhost:8080`.
 Interactive Swagger UI is available at `/docs`, and the machine-readable
 OpenAPI 3 specification is available at `/openapi.json`.
 
-The playable reference client is served from `/`. Its network activity panel
-shows the same calls documented below while you play.
+The playable Tic-Tac-Toe reference client is served from `/`, and Blackjack is
+served from `/blackjack.html`. Their activity panels show the same public calls
+documented below while you play.
 
 ## Resources
 
@@ -84,6 +85,8 @@ Commands all use the same envelope. `actor_id` identifies the player,
 | Command | Payload | Resulting event | Intended use |
 |---|---|---|---|
 | `start_game` | `{}` | `game_started` | Lock the lobby and choose the first turn |
+| `hit` | `{}` | `card_dealt` | Deal one Blackjack card to the acting player |
+| `stand` | `{}` | `game_finished` | Resolve the Blackjack dealer and outcome |
 | `place_piece` | `{"space_id":"0-0"}` | `piece_placed` | Chess placement, Go stones, tokens |
 | `move_piece` | `{"piece_id":"pawn-1","to":"b4"}` | `piece_moved` | Grid, graph, or zone movement |
 | `draw_card` | `{"deck_id":"draw"}` | `card_drawn` | Move the top card to a private hand |
@@ -106,3 +109,16 @@ Every successful command returns:
 Retrying the same `idempotency_key` returns the original result with
 `replayed: true`. Sending a different command with an old version returns HTTP
 `409` and the current version, prompting the client to refresh.
+
+## Blackjack example
+
+Create a game with `"template_id":"blackjack"`, join once, and send
+`start_game`. While the game is active, submit either `hit` or `stand` through
+the same command endpoint. The server owns shuffling, dealing, ace valuation,
+dealer drawing, busts, pushes, and the final outcome.
+
+This demo exposed an important next protocol requirement: the generic snapshot
+currently contains the complete deck and every hand. The web client hides the
+dealer's hole card visually, but a production card game needs actor-specific
+state projections so unauthorized clients never receive hidden cards. That
+projection boundary is the next service capability to design.

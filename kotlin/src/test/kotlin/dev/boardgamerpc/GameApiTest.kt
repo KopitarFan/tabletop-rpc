@@ -36,6 +36,14 @@ class GameApiTest(
             status { isOk() }
             content { contentTypeCompatibleWith("text/css") }
         }
+        mvc.get("/blackjack.html").andExpect {
+            status { isOk() }
+            content { string(org.hamcrest.Matchers.containsString("Beat the dealer")) }
+        }
+        mvc.get("/blackjack.js").andExpect {
+            status { isOk() }
+            content { contentTypeCompatibleWith("text/javascript") }
+        }
     }
 
     @Test
@@ -89,6 +97,31 @@ class GameApiTest(
             }"""
         }.andExpect { status { isConflict() } }.andReturn()
         assertThat(mapper.readTree(result.response.contentAsString).at("/detail/actual").asLong()).isZero()
+    }
+
+    @Test
+    fun `plays Blackjack through the same command endpoint`() {
+        val templates = mvc.get("/v1/templates").andExpect { status { isOk() } }.andReturn()
+        assertThat(mapper.readTree(templates.response.contentAsString).map { it["id"].asText() })
+            .contains("blackjack")
+
+        val game = request("/v1/games", """{"template_id":"blackjack","name":"Ada at the table"}""", 201)
+        val id = game["id"].asText()
+        val joined = request("/v1/games/$id/players", """{"name":"Ada"}""", 201)
+        val player = joined.at("/players/0/id").asText()
+        val started = command(id, "start_game", player, joined["version"].asLong(), "{}", "blackjack-start")
+        assertThat(started.at("/state/board/decks/shoe/hands/$player").size()).isEqualTo(2)
+        assertThat(started.at("/state/board/decks/shoe/hands/dealer").size()).isEqualTo(2)
+
+        if (started.at("/state/status").asText() == "ACTIVE") {
+            val stood = command(
+                id, "stand", player, started.at("/state/version").asLong(), "{}", "blackjack-stand",
+            )
+            assertThat(stood.at("/state/status").asText()).isEqualTo("FINISHED")
+            assertThat(stood.at("/state/board/values/outcome").asText())
+                .isIn("PLAYER_WIN", "DEALER_WIN", "PUSH")
+            assertThat(stood.at("/state/board/values/dealer_revealed").asBoolean()).isTrue()
+        }
     }
 
     private fun command(

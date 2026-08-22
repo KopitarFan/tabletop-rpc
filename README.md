@@ -3,16 +3,16 @@
 **One protocol. Every tabletop.**
 
 [Project website](https://kopitarfan.github.io/tabletop-rpc/) ·
-[Live demo](https://tabletoprpc.miguelrodriguez.net/) ·
+[Live Tic-Tac-Toe](https://tabletoprpc.miguelrodriguez.net/) ·
+[Live Blackjack](https://tabletoprpc.miguelrodriguez.net/blackjack.html) ·
 [Swagger API](https://tabletoprpc.miguelrodriguez.net/docs)
 
 A game-agnostic **Kotlin/Spring Boot** web service for building online
 board-game clients.
 
-It includes a polished reference client you can play in the browser. Create a
-Tic-Tac-Toe game, share its invite URL with another player, or play against an
-unbeatable computer opponent. Human clicks and computer moves both submit the
-same public API commands; the UI never edits board state locally.
+It includes polished Tic-Tac-Toe and Blackjack reference clients you can play
+in the browser. Every human choice and computer-controlled rule submits or
+resolves through the same public API; the UI never edits game state locally.
 
 The beta provides reusable objects for boards, spaces, pieces, cards, decks,
 dice, players, turns, and custom RPG-style values. Clients submit commands
