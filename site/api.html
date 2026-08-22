@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="MeepleRPC HTTP API reference.">
-  <title>API Reference — MeepleRPC</title><link rel="stylesheet" href="styles.css">
+  <meta name="description" content="TabletopRPC HTTP API reference.">
+  <title>API Reference — TabletopRPC</title><link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="nav shell"><a class="logo" href="index.html"><span>MR</span>MeepleRPC</a><nav><a href="index.html#protocol">Protocol</a><a href="api.html">API</a><a href="https://github.com/KopitarFan/meeple-rpc">GitHub</a><a class="nav-cta" href="https://github.com/KopitarFan/meeple-rpc#run-it">Run the demo</a></nav></header>
+  <header class="nav shell"><a class="logo" href="index.html"><span>TR</span>TabletopRPC</a><nav><a href="index.html#protocol">Protocol</a><a href="api.html">API</a><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a class="nav-cta" href="https://tabletoprpc.miguelrodriguez.net/">Play the demo</a></nav></header>
   <main class="api-page shell">
-    <div class="api-hero"><p class="kicker">HTTP / JSON · OpenAPI 3.1</p><h1>A small surface<br>for big games.</h1><p>These endpoints create sessions, add players, execute atomic commands, and synchronize authoritative state. Run MeepleRPC to use the full interactive Swagger UI at <code>/docs</code>.</p></div>
+    <div class="api-hero"><p class="kicker">HTTP / JSON · OpenAPI 3.1</p><h1>A small surface<br>for big games.</h1><p>These endpoints create sessions, add players, execute atomic commands, and synchronize authoritative state. Use TabletopRPC's live interactive Swagger UI at <code>/docs</code>.</p></div>
     <div class="endpoints" aria-label="API endpoints">
       <div class="endpoint"><span class="method">GET</span><code>/health</code><p>Check service health and implementation.</p></div>
       <div class="endpoint"><span class="method">GET</span><code>/v1/templates</code><p>Discover registered game rules and player limits.</p></div>
@@ -18,9 +18,8 @@
       <div class="endpoint"><span class="method">POST</span><code>/v1/games/{id}/commands</code><p>Validate and apply versioned, idempotent player intent.</p></div>
       <div class="endpoint"><span class="method">GET</span><code>/v1/games/{id}/events</code><p>Read ordered events after a known sequence.</p></div>
     </div>
-    <div class="api-callout"><div><strong>Want request schemas and live examples?</strong><p>Start the engine, then open its generated Swagger UI.</p></div><a class="button" href="https://github.com/KopitarFan/meeple-rpc#run-it">Open Swagger locally <span>→</span></a></div>
+    <div class="api-callout"><div><strong>Want request schemas and live examples?</strong><p>Explore the generated API contract and execute calls against the live service.</p></div><a class="button" href="https://tabletoprpc.miguelrodriguez.net/docs">Open live Swagger <span>→</span></a></div>
   </main>
-  <footer class="footer shell"><a class="logo" href="index.html"><span>MR</span>MeepleRPC</a><p>Open source under the MIT License.</p><div><a href="https://github.com/KopitarFan/meeple-rpc">GitHub</a><a href="index.html">Home</a></div></footer>
+  <footer class="footer shell"><a class="logo" href="index.html"><span>TR</span>TabletopRPC</a><p>Open source under the MIT License.</p><div><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a href="index.html">Home</a></div></footer>
 </body>
 </html>
-

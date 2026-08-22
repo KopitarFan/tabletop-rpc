@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 /**
- * HTTP boundary for the MeepleRPC protocol.
+ * HTTP boundary for the TabletopRPC protocol.
  *
  * The controller deliberately delegates all rule enforcement and concurrency
  * control to [GameEngine]. It is responsible only for transport mapping and

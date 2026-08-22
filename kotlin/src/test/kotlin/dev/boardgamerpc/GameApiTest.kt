@@ -43,7 +43,7 @@ class GameApiTest(
         mvc.get("/docs").andExpect { status { is3xxRedirection() } }
         val result = mvc.get("/openapi.json").andExpect { status { isOk() } }.andReturn()
         val specification = mapper.readTree(result.response.contentAsString)
-        assertThat(specification.at("/info/title").asText()).isEqualTo("MeepleRPC")
+        assertThat(specification.at("/info/title").asText()).isEqualTo("TabletopRPC")
         assertThat(specification.at("/paths/~1v1~1games~1{id}~1commands/post/operationId").asText())
             .isEqualTo("executeCommand")
         assertThat(specification.at("/components/schemas/Board/description").asText())
