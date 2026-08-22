@@ -51,6 +51,8 @@ class GameApiTest(
         mvc.get("/ludo.js").andExpect {
             status { isOk() }
             content { contentTypeCompatibleWith("text/javascript") }
+            content { string(org.hamcrest.Matchers.containsString("Move pawn")) }
+            content { string(org.hamcrest.Matchers.containsString("moves.length===1")) }
         }
     }
 

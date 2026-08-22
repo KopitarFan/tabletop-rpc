@@ -24,7 +24,7 @@
     <section id="ludo-game" class="ludo-game hidden">
       <div class="game-topline"><div><p class="eyebrow">Live API session</p><h1>Mini Ludo</h1></div><button id="ludo-new" class="secondary-button" type="button">New race</button></div>
       <div class="ludo-layout">
-        <aside class="status-card"><div class="status-label">Race status</div><p id="ludo-message" class="status-message">Preparing the track…</p><div id="ludo-players" class="players"></div><div class="dice-panel"><button id="roll" class="die" type="button" aria-label="Roll the die">–</button><small id="roll-hint">Roll to begin</small></div></aside>
+        <aside class="status-card"><div class="status-label">Race status</div><p id="ludo-message" class="status-message">Preparing the track…</p><div id="ludo-players" class="players"></div><div class="dice-panel"><button id="roll" class="die" type="button" aria-label="Roll the die">–</button><small id="roll-hint">Roll to begin</small></div><div id="ludo-actions" class="ludo-actions" aria-live="polite"></div></aside>
         <div class="ludo-board-wrap"><div id="ludo-board" class="ludo-board" aria-label="Mini Ludo board"></div><div class="board-key"><span><i class="coral"></i>You</span><span><i class="cyan"></i>Computer</span><span><b>★</b>Safe</span></div></div>
         <aside class="activity-card"><div class="activity-heading"><span>API activity</span><span class="live-pill">LIVE</span></div><ol id="ludo-activity" class="activity-list" aria-live="polite"></ol><div class="api-meter"><div><span>State version</span><strong id="ludo-version">0</strong></div><div><span>Last event</span><strong id="ludo-event">—</strong></div></div><a href="docs" class="activity-docs">Open Swagger documentation <span>↗</span></a></aside>
       </div>
