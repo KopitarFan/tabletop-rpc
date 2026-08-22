@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A playable reference client for TabletopRPC.">
+  <meta name="description" content="Play Tic-Tac-Toe, Blackjack, and Mini Ludo through the TabletopRPC API.">
   <meta property="og:title" content="TabletopRPC — One API. Any tabletop.">
-  <meta property="og:description" content="Play the API-powered Tic-Tac-Toe reference client.">
+  <meta property="og:description" content="Play three live reference clients powered by one authoritative tabletop API.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://tabletoprpc.miguelrodriguez.net/">
   <meta property="og:image" content="https://tabletoprpc.miguelrodriguez.net/tabletoprpc-social-card.png">
   <meta name="twitter:card" content="summary_large_image">
-  <title>TabletopRPC — Tic-Tac-Toe</title>
+  <title>TabletopRPC — Live Game Demos</title>
   <link rel="icon" type="image/png" href="tabletoprpc-logo.png">
-  <link rel="stylesheet" href="tabletoprpc-v2.css">
+  <link rel="stylesheet" href="tabletoprpc-v2.css?v=3">
 </head>
 <body>
   <main class="shell">
@@ -21,7 +21,7 @@
         <img class="brand-mark" src="tabletoprpc-logo.png" alt="">
         <span>TabletopRPC</span>
       </a>
-      <nav class="demo-nav"><a class="api-link" href="blackjack.html">Blackjack</a><a class="api-link" href="ludo.html">Mini Ludo</a><a class="api-link" href="docs">Explore the API <span aria-hidden="true">↗</span></a></nav>
+      <nav class="demo-nav"><a class="api-link" href="#game-demos">Game demos</a><a class="api-link" href="docs">Explore the API <span aria-hidden="true">↗</span></a></nav>
     </header>
 
     <section id="welcome" class="welcome" aria-labelledby="welcome-title">
@@ -57,6 +57,16 @@
         <button class="primary-button" type="submit">Create game <span aria-hidden="true">→</span></button>
         <p id="start-error" class="form-error" role="alert"></p>
       </form>
+    </section>
+
+    <section id="game-demos" class="demo-showcase" aria-labelledby="demo-title">
+      <div class="showcase-heading"><div><p class="eyebrow">Three live reference clients</p><h2 id="demo-title">Pick your<br><em>API playground.</em></h2></div><p>Every game below uses the same public service as a real client. Together they exercise boards, pieces, cards, decks, dice, turns, hidden information, and computer players.</p></div>
+      <div class="showcase-grid">
+        <article class="demo-card"><div class="demo-visual tic-visual" aria-hidden="true"><b>×</b><i></i><em>○</em><i></i><b>×</b><i></i><em>○</em><i></i><b>×</b></div><div class="demo-card-body"><small>GRID · PIECES · INVITES</small><h3>Tic-Tac-Toe</h3><p>Challenge the minimax bot or create a link and invite a friend.</p><a href="./">Play Tic-Tac-Toe <span>→</span></a></div></article>
+        <article class="demo-card"><div class="demo-visual cards-visual" aria-hidden="true"><b>A<small>♠</small></b><b>K<small>♥</small></b></div><div class="demo-card-body"><small>CARDS · DECKS · HIDDEN STATE</small><h3>Blackjack</h3><p>Hit or stand against a dealer backed by server-owned shuffling and scoring.</p><a href="blackjack.html">Play Blackjack <span>→</span></a></div></article>
+        <article class="demo-card"><div class="demo-visual race-visual" aria-hidden="true"><b></b><b></b><b></b><b></b><i>6</i></div><div class="demo-card-body"><small>DICE · MOVEMENT · CAPTURES</small><h3>Mini Ludo</h3><p>Race an API bot through safe spaces, captures, home lanes, and exact rolls.</p><a href="ludo.html">Play Mini Ludo <span>→</span></a></div></article>
+      </div>
+      <p class="showcase-note">Want to inspect the calls? Keep Swagger open beside a game and watch the API activity feed. <a href="docs">Open the docs ↗</a></p>
     </section>
 
     <section id="join" class="join-panel hidden" aria-labelledby="join-title">
