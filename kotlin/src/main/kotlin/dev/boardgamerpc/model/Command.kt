@@ -16,7 +16,7 @@ import java.util.UUID
 data class Command(
     @field:Schema(
         example = "place_piece",
-        allowableValues = ["start_game", "place_piece", "move_piece", "draw_card", "play_card",
+        allowableValues = ["start_game", "place_piece", "hit", "stand", "move_piece", "draw_card", "play_card",
             "shuffle_deck", "roll_dice", "set_value", "end_turn"],
     )
     val type: String,

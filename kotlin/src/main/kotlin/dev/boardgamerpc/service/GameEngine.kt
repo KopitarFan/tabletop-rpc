@@ -31,14 +31,14 @@ class GameEngine(
     private val games = ConcurrentHashMap<UUID, MutableGame>()
 
     /** Returns metadata for every rules template that can create a game. */
-    fun templates(): List<TemplateSummary> = listOf(TIC_TAC_TOE)
+    fun templates(): List<TemplateSummary> = TEMPLATES
 
     /**
      * Finds a registered template.
      * @throws ApiException with HTTP 404 semantics when [id] is unknown.
      */
     fun template(id: String): TemplateSummary =
-        TIC_TAC_TOE.takeIf { it.id == id }
+        TEMPLATES.firstOrNull { it.id == id }
             ?: fail(HttpStatus.NOT_FOUND, "Template not found")
 
     /**
@@ -71,7 +71,7 @@ class GameEngine(
             if (game.status != GameStatus.LOBBY) {
                 fail(HttpStatus.CONFLICT, "Players can only join while the game is in the lobby")
             }
-            if (game.players.size >= 2) fail(HttpStatus.CONFLICT, "Game is full")
+            if (game.players.size >= template(game.templateId).maxPlayers) fail(HttpStatus.CONFLICT, "Game is full")
             if (name.isBlank()) fail(HttpStatus.UNPROCESSABLE_ENTITY, "name is required")
             val player = Player(name = name, seat = game.players.size)
             game.players += player
@@ -116,6 +116,8 @@ class GameEngine(
             when (command.type) {
                 "start_game" -> start(game, command)
                 "place_piece" -> place(game, command)
+                "hit" -> hit(game, command)
+                "stand" -> stand(game, command)
                 "move_piece" -> move(game, command)
                 "draw_card" -> draw(game, command)
                 "play_card" -> play(game, command)
@@ -133,15 +135,40 @@ class GameEngine(
     }
 
     private fun start(game: MutableGame, command: Command) {
-        if (game.status != GameStatus.LOBBY || game.players.size != 2) {
-            fail(HttpStatus.CONFLICT, "Tic-Tac-Toe requires exactly two lobby players")
+        if (game.status != GameStatus.LOBBY) fail(HttpStatus.CONFLICT, "Game is not in the lobby")
+        when (game.templateId) {
+            TIC_TAC_TOE.id -> startTicTacToe(game, command)
+            BLACKJACK.id -> startBlackjack(game, command)
+            else -> fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unsupported template: ${game.templateId}")
         }
+    }
+
+    private fun startTicTacToe(game: MutableGame, command: Command) {
+        if (game.players.size != 2) fail(HttpStatus.CONFLICT, "Tic-Tac-Toe requires exactly two lobby players")
         game.status = GameStatus.ACTIVE
         game.currentPlayerId = game.players.first().id
         game.record("game_started", command.actorId)
     }
 
+    private fun startBlackjack(game: MutableGame, command: Command) {
+        if (game.players.size != 1) fail(HttpStatus.CONFLICT, "Blackjack requires exactly one player")
+        if (command.actorId != game.players.first().id) fail(HttpStatus.FORBIDDEN, "Actor is not a player in this game")
+        val deck = Deck(id = BLACKJACK_DECK, drawPile = standardDeck().toMutableList())
+        Collections.shuffle(deck.drawPile, random)
+        game.decks[BLACKJACK_DECK] = deck
+        game.status = GameStatus.ACTIVE
+        game.currentPlayerId = game.players.first().id
+        repeat(2) {
+            deal(deck, game.players.first().id.toString())
+            deal(deck, DEALER_HAND)
+        }
+        updateBlackjackValues(game, revealDealer = false)
+        game.record("game_started", command.actorId, mapOf("template_id" to BLACKJACK.id))
+        if (blackjackTotal(deck.hands.getValue(game.players.first().id.toString())) == 21) resolveBlackjack(game, command.actorId)
+    }
+
     private fun place(game: MutableGame, command: Command) {
+        if (game.templateId != TIC_TAC_TOE.id) fail(HttpStatus.UNPROCESSABLE_ENTITY, "place_piece is not supported by this template")
         val actor = requireTurn(game, command.actorId)
         val spaceId = text(command.payload, "space_id")
         if (spaceId !in game.spaces) fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unknown space: $spaceId")
@@ -169,6 +196,77 @@ class GameEngine(
         } else {
             advance(game, actor.id)
         }
+    }
+
+    private fun hit(game: MutableGame, command: Command) {
+        if (game.templateId != BLACKJACK.id) fail(HttpStatus.UNPROCESSABLE_ENTITY, "hit is only supported by Blackjack")
+        val actor = requireTurn(game, command.actorId)
+        val deck = game.decks.getValue(BLACKJACK_DECK)
+        val card = deal(deck, actor.id.toString())
+        game.record("card_dealt", actor.id, mapOf("recipient" to "player", "card" to card))
+        updateBlackjackValues(game, revealDealer = false)
+        val total = blackjackTotal(deck.hands.getValue(actor.id.toString()))
+        if (total >= 21) resolveBlackjack(game, actor.id)
+    }
+
+    private fun stand(game: MutableGame, command: Command) {
+        if (game.templateId != BLACKJACK.id) fail(HttpStatus.UNPROCESSABLE_ENTITY, "stand is only supported by Blackjack")
+        val actor = requireTurn(game, command.actorId)
+        resolveBlackjack(game, actor.id)
+    }
+
+    private fun resolveBlackjack(game: MutableGame, actorId: UUID?) {
+        val deck = game.decks.getValue(BLACKJACK_DECK)
+        val playerHand = deck.hands.getValue(game.players.first().id.toString())
+        val dealerHand = deck.hands.getValue(DEALER_HAND)
+        if (blackjackTotal(playerHand) <= 21) {
+            while (blackjackTotal(dealerHand) < 17) {
+                val card = deal(deck, DEALER_HAND)
+                game.record("card_dealt", null, mapOf("recipient" to "dealer", "card" to card))
+            }
+        }
+        val playerTotal = blackjackTotal(playerHand)
+        val dealerTotal = blackjackTotal(dealerHand)
+        val outcome = when {
+            playerTotal > 21 -> "DEALER_WIN"
+            dealerTotal > 21 -> "PLAYER_WIN"
+            playerTotal > dealerTotal -> "PLAYER_WIN"
+            dealerTotal > playerTotal -> "DEALER_WIN"
+            else -> "PUSH"
+        }
+        game.status = GameStatus.FINISHED
+        game.currentPlayerId = null
+        game.values["outcome"] = outcome
+        updateBlackjackValues(game, revealDealer = true)
+        game.record("game_finished", actorId, mapOf("outcome" to outcome, "player_total" to playerTotal, "dealer_total" to dealerTotal))
+    }
+
+    private fun deal(deck: Deck, hand: String): Card {
+        val card = deck.drawPile.removeLastOrNull() ?: fail(HttpStatus.CONFLICT, "Deck is empty")
+        deck.hands.getOrPut(hand) { mutableListOf() } += card
+        return card
+    }
+
+    private fun updateBlackjackValues(game: MutableGame, revealDealer: Boolean) {
+        val deck = game.decks.getValue(BLACKJACK_DECK)
+        val playerHand = deck.hands.getValue(game.players.first().id.toString())
+        val dealerHand = deck.hands.getValue(DEALER_HAND)
+        game.values["player_total"] = blackjackTotal(playerHand)
+        game.values["dealer_total"] = if (revealDealer) blackjackTotal(dealerHand) else blackjackTotal(dealerHand.take(1))
+        game.values["dealer_revealed"] = revealDealer
+    }
+
+    private fun blackjackTotal(cards: List<Card>): Int {
+        var total = cards.sumOf { card ->
+            when (card.rank) {
+                "A" -> 11
+                "K", "Q", "J" -> 10
+                else -> card.rank?.toIntOrNull() ?: 0
+            }
+        }
+        var aces = cards.count { it.rank == "A" }
+        while (total > 21 && aces-- > 0) total -= 10
+        return total
     }
 
     private fun move(game: MutableGame, command: Command) {
@@ -293,16 +391,23 @@ class GameEngine(
         val pieces = linkedMapOf<String, Piece>()
         val decks = linkedMapOf<String, Deck>()
         val dice = linkedMapOf<String, Die>()
-        val values = linkedMapOf<String, Any?>("winner" to null, "draw" to false)
+        val values = linkedMapOf<String, Any?>()
         val events = mutableListOf<GameEvent>()
         val replays = mutableMapOf<String, CommandResult>()
 
         init {
-            for (row in 0..2) {
-                for (column in 0..2) {
-                    val key = "$row-$column"
-                    spaces[key] = Space(key, "Row ${row + 1}, Column ${column + 1}")
+            if (templateId == TIC_TAC_TOE.id) {
+                values["winner"] = null
+                values["draw"] = false
+                for (row in 0..2) {
+                    for (column in 0..2) {
+                        val key = "$row-$column"
+                        spaces[key] = Space(key, "Row ${row + 1}, Column ${column + 1}")
+                    }
                 }
+            } else if (templateId == BLACKJACK.id) {
+                values["outcome"] = null
+                values["dealer_revealed"] = false
             }
         }
 
@@ -355,6 +460,29 @@ class GameEngine(
             maxPlayers = 2,
             description = "Two players place X and O on a 3x3 board.",
         )
+
+        private val BLACKJACK = TemplateSummary(
+            id = "blackjack",
+            name = "Blackjack",
+            minPlayers = 1,
+            maxPlayers = 1,
+            description = "A single player competes against a server-authoritative dealer.",
+        )
+
+        private val TEMPLATES = listOf(TIC_TAC_TOE, BLACKJACK)
+        private const val BLACKJACK_DECK = "shoe"
+        private const val DEALER_HAND = "dealer"
+
+        private fun standardDeck(): List<Card> = listOf("clubs", "diamonds", "hearts", "spades").flatMap { suit ->
+            listOf("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K").map { rank ->
+                Card(
+                    id = "${rank.lowercase()}-$suit",
+                    name = "$rank of ${suit.replaceFirstChar(Char::uppercase)}",
+                    suit = suit,
+                    rank = rank,
+                )
+            }
+        }
 
         private val WINNING_LINES = listOf(
             listOf("0-0", "0-1", "0-2"),

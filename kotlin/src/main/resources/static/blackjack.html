@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An API-powered Blackjack reference client for TabletopRPC.">
+  <title>TabletopRPC — Blackjack</title>
+  <link rel="icon" type="image/png" href="tabletoprpc-logo.png">
+  <link rel="stylesheet" href="tabletoprpc-v2.css">
+  <link rel="stylesheet" href="blackjack.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <a class="brand" href="./"><img class="brand-mark" src="tabletoprpc-logo.png" alt=""><span>TabletopRPC</span></a>
+      <nav class="demo-nav"><a href="./">Tic-Tac-Toe</a><a href="docs">Explore the API ↗</a></nav>
+    </header>
+
+    <section id="blackjack-welcome" class="blackjack-welcome">
+      <div>
+        <p class="eyebrow">Reference client · Blackjack</p>
+        <h1>Beat the dealer.<br><em>Test the API.</em></h1>
+        <p class="lede">The deck is shuffled, cards are dealt, and every hit or stand is resolved by the authoritative Kotlin service.</p>
+      </div>
+      <form id="blackjack-start" class="start-card">
+        <div class="card-heading"><span class="live-dot"></span><span>Take a seat</span></div>
+        <label for="blackjack-name">Your display name</label>
+        <input id="blackjack-name" maxlength="60" placeholder="e.g. Ada" autocomplete="nickname" required>
+        <button class="primary-button" type="submit">Deal the cards <span>→</span></button>
+        <p id="blackjack-error" class="form-error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="blackjack-game" class="blackjack-game hidden">
+      <div class="game-topline">
+        <div><p class="eyebrow">Live API session</p><h1>Blackjack</h1></div>
+        <button id="blackjack-new" class="secondary-button" type="button">New hand</button>
+      </div>
+      <div class="table-layout">
+        <section class="felt" aria-label="Blackjack table">
+          <div class="hand-zone">
+            <div class="hand-label"><span>Dealer</span><strong id="dealer-total">?</strong></div>
+            <div id="dealer-hand" class="card-hand"></div>
+          </div>
+          <div class="table-message" id="blackjack-message">Your move</div>
+          <div class="hand-zone">
+            <div class="hand-label"><span id="player-label">Player</span><strong id="player-total">0</strong></div>
+            <div id="player-hand" class="card-hand"></div>
+          </div>
+          <div class="table-actions">
+            <button id="hit" class="table-button hit" type="button">Hit</button>
+            <button id="stand" class="table-button stand" type="button">Stand</button>
+          </div>
+        </section>
+        <aside class="activity-card blackjack-activity">
+          <div class="activity-heading"><span>API activity</span><span class="live-pill">LIVE</span></div>
+          <ol id="blackjack-activity" class="activity-list" aria-live="polite"></ol>
+          <div class="api-meter"><div><span>State version</span><strong id="blackjack-version">0</strong></div><div><span>Cards remaining</span><strong id="cards-remaining">52</strong></div></div>
+          <a href="docs" class="activity-docs">Open Swagger documentation <span>↗</span></a>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="blackjack.js"></script>
+</body>
+</html>
