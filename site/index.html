@@ -25,6 +25,7 @@
     <a class="logo" href="#top"><img src="assets/tabletoprpc-logo.png" alt="">TabletopRPC</a>
     <nav aria-label="Main navigation">
       <a href="#protocol">Protocol</a>
+      <a href="#demos">Demos</a>
       <a href="api.html">API</a>
       <a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a>
       <a class="nav-cta" href="https://tabletoprpc.miguelrodriguez.net/">Play the demo</a>
@@ -38,9 +39,7 @@
         <h1>One API.<br><em>Any tabletop.</em></h1>
         <p class="hero-lede">The authoritative game engine for cards, dice, boards, pieces, turns—and whatever your next game invents.</p>
         <div class="hero-actions">
-          <a class="button primary" href="https://tabletoprpc.miguelrodriguez.net/">Play Tic-Tac-Toe <span>→</span></a>
-          <a class="button secondary" href="https://tabletoprpc.miguelrodriguez.net/blackjack.html">Play Blackjack <span>→</span></a>
-          <a class="button secondary" href="https://tabletoprpc.miguelrodriguez.net/ludo.html">Play Mini Ludo <span>→</span></a>
+          <a class="button primary" href="#demos">Explore live demos <span>↓</span></a>
           <a class="button secondary" href="api.html">Explore the API <span>↗</span></a>
         </div>
         <div class="proof"><span><i></i> MIT licensed</span><span>Versioned commands</span><span>Swagger documented</span></div>
@@ -83,20 +82,27 @@
       </div>
     </section>
 
-    <section class="demo-section">
-      <div class="shell demo-grid">
-        <div class="mini-board" aria-hidden="true">
-          <span class="x">×</span><span></span><span class="o">○</span>
-          <span></span><span class="x">×</span><span></span>
-          <span class="o">○</span><span></span><span class="x">×</span>
+    <section id="demos" class="demo-section">
+      <div class="shell">
+        <div class="demo-heading">
+          <div><p class="kicker"><span></span> Live reference clients</p><h2>Three games.<br>One API.</h2></div>
+          <p>Each playable demo is a real client of the public TabletopRPC API. Pick a game and watch the same engine handle grids, cards, dice, turns, and computer opponents.</p>
         </div>
-        <div class="demo-copy">
-          <p class="kicker"><span></span> Reference client included</p>
-          <h2>See the API<br>play its own game.</h2>
-          <p>Challenge Tic-Tac-Toe’s minimax opponent, play Blackjack against the dealer, or race API-controlled pawns through Mini Ludo.</p>
-          <a class="button light" href="https://tabletoprpc.miguelrodriguez.net/ludo.html">Play Mini Ludo <span>→</span></a>
-          <small>The live reference clients, API, and Swagger UI are served by the same Kotlin application.</small>
+        <div class="game-grid">
+          <article class="game-card game-tic">
+            <div class="game-art tic-art" aria-hidden="true"><b>×</b><i></i><em>○</em><i></i><b>×</b><i></i><em>○</em><i></i><b>×</b></div>
+            <div class="game-body"><p class="game-number">DEMO 01 · GRID &amp; PIECES</p><h3>Tic-Tac-Toe</h3><p>Challenge a minimax computer opponent while every placement is validated and versioned by the server.</p><a href="https://tabletoprpc.miguelrodriguez.net/">Play Tic-Tac-Toe <span>→</span></a></div>
+          </article>
+          <article class="game-card game-blackjack">
+            <div class="game-art card-art" aria-hidden="true"><span>A<small>♠</small></span><span>K<small>♥</small></span></div>
+            <div class="game-body"><p class="game-number">DEMO 02 · CARDS &amp; DECKS</p><h3>Blackjack</h3><p>Hit, stand, and face the dealer with server-owned shuffling, hidden information, and hand scoring.</p><a href="https://tabletoprpc.miguelrodriguez.net/blackjack.html">Play Blackjack <span>→</span></a></div>
+          </article>
+          <article class="game-card game-ludo">
+            <div class="game-art ludo-art" aria-hidden="true"><span></span><span></span><span></span><span></span><i>6</i></div>
+            <div class="game-body"><p class="game-number">DEMO 03 · DICE &amp; RACING</p><h3>Mini Ludo</h3><p>Race an API-controlled opponent through legal moves, captures, safe spaces, and home lanes.</p><a href="https://tabletoprpc.miguelrodriguez.net/ludo.html">Play Mini Ludo <span>→</span></a></div>
+          </article>
         </div>
+        <p class="demo-note"><b>Built to teach:</b> the demos, API, and Swagger UI all run from the same open-source Kotlin application.</p>
       </div>
     </section>
 
