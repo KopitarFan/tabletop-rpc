@@ -64,6 +64,7 @@ with live
 - OpenAPI 3.1 JSON: `/openapi.json`
 - [API calls and command payloads](docs/API.md)
 - [Architecture and correctness properties](docs/ARCHITECTURE.md)
+- [Public deployment and operations](docs/DEPLOYMENT.md)
 - [Adding models, commands, and templates](docs/EXTENDING.md)
 - [Contribution workflow and code conventions](CONTRIBUTING.md)
 

@@ -15,6 +15,7 @@
     <a class="logo" href="#top"><span>TR</span>TabletopRPC</a>
     <nav aria-label="Main navigation">
       <a href="#protocol">Protocol</a>
+      <a href="#deployment">Deployment</a>
       <a href="api.html">API</a>
       <a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a>
       <a class="nav-cta" href="https://tabletoprpc.miguelrodriguez.net/">Play the demo</a>
@@ -81,6 +82,25 @@
           <a class="button light" href="https://tabletoprpc.miguelrodriguez.net/">Play the live demo <span>→</span></a>
           <small>The live reference client, API, and Swagger UI are served by the same Kotlin application.</small>
         </div>
+      </div>
+    </section>
+
+    <section id="deployment" class="deployment-section">
+      <div class="shell deployment-grid">
+        <div>
+          <p class="kicker">Public beta · Live infrastructure</p>
+          <h2>From intent<br>to the edge.</h2>
+          <p>TabletopRPC is not just a local sample. The Kotlin service runs in a Docker container on Vultr, with Caddy at the origin and Cloudflare providing DNS, strict TLS, and edge proxying.</p>
+          <div class="deployment-links">
+            <a class="button primary" href="https://tabletoprpc.miguelrodriguez.net/">Play the live demo <span>→</span></a>
+            <a class="text-link" href="https://tabletoprpc.miguelrodriguez.net/docs">Open Swagger ↗</a>
+          </div>
+        </div>
+        <ol class="deployment-flow" aria-label="TabletopRPC deployment path">
+          <li><span>01</span><div><strong>Cloudflare edge</strong><small>DNS · TLS · HTTP proxy</small></div></li>
+          <li><span>02</span><div><strong>Caddy on Vultr</strong><small>Strict origin TLS · reverse proxy</small></div></li>
+          <li><span>03</span><div><strong>Kotlin container</strong><small>Spring Boot · authoritative game state</small></div></li>
+        </ol>
       </div>
     </section>
 

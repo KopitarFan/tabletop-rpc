@@ -55,6 +55,26 @@ clear production path: a database-backed event store, authentication, hidden
 player projections, WebSocket/SSE delivery, matchmaking, and pluggable rule
 packages can be added without changing the command envelope.
 
+## Public beta topology
+
+The reference deployment keeps the static project site and live application
+separate so a service restart cannot take the documentation landing page down.
+
+```mermaid
+flowchart LR
+    VISITOR[Browser client] --> EDGE[Cloudflare DNS, TLS, and proxy]
+    EDGE --> CADDY[Caddy on Vultr]
+    CADDY --> APP[TabletopRPC container]
+    APP --> ENGINE[In-memory Kotlin game engine]
+    GITHUB[GitHub Pages] --> SITE[Project website]
+    SITE --> VISITOR
+```
+
+Cloudflare uses Full (strict) encryption to validate the public certificate
+managed by Caddy at the origin. The application port is bound to loopback, so
+only Caddy can reach it from the host. See [Deployment](DEPLOYMENT.md) for the
+operational details and limitations of the public beta.
+
 ## Correctness properties
 
 - Each game is mutated under a per-engine/per-game lock.
