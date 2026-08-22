@@ -3,12 +3,17 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="TabletopRPC HTTP API reference.">
-  <title>API Reference — TabletopRPC</title><link rel="stylesheet" href="styles.css">
+  <meta property="og:title" content="TabletopRPC API Reference">
+  <meta property="og:description" content="Build multiplayer board games without rebuilding the table.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://kopitarfan.github.io/tabletop-rpc/assets/tabletoprpc-social-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>API Reference — TabletopRPC</title><link rel="icon" type="image/png" href="assets/tabletoprpc-logo.png"><link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="nav shell"><a class="logo" href="index.html"><span>TR</span>TabletopRPC</a><nav><a href="index.html#protocol">Protocol</a><a href="api.html">API</a><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a class="nav-cta" href="https://tabletoprpc.miguelrodriguez.net/">Play the demo</a></nav></header>
+  <header class="nav shell"><a class="logo" href="index.html"><img src="assets/tabletoprpc-logo.png" alt="">TabletopRPC</a><nav><a href="index.html#protocol">Protocol</a><a href="api.html">API</a><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a class="nav-cta" href="https://tabletoprpc.miguelrodriguez.net/">Play the demo</a></nav></header>
   <main class="api-page shell">
-    <div class="api-hero"><p class="kicker">HTTP / JSON · OpenAPI 3.1</p><h1>A small surface<br>for big games.</h1><p>These endpoints create sessions, add players, execute atomic commands, and synchronize authoritative state. Use TabletopRPC's live interactive Swagger UI at <code>/docs</code>.</p></div>
+    <div class="api-hero"><p class="kicker"><span></span> HTTP / JSON · OpenAPI 3.1</p><h1>A small surface<br>for big games.</h1><p>These endpoints create sessions, add players, execute atomic commands, and synchronize authoritative state. Use TabletopRPC's live interactive Swagger UI at <code>/docs</code>.</p></div>
     <div class="endpoints" aria-label="API endpoints">
       <div class="endpoint"><span class="method">GET</span><code>/health</code><p>Check service health and implementation.</p></div>
       <div class="endpoint"><span class="method">GET</span><code>/v1/templates</code><p>Discover registered game rules and player limits.</p></div>
@@ -20,6 +25,6 @@
     </div>
     <div class="api-callout"><div><strong>Want request schemas and live examples?</strong><p>Explore the generated API contract and execute calls against the live service.</p></div><a class="button" href="https://tabletoprpc.miguelrodriguez.net/docs">Open live Swagger <span>→</span></a></div>
   </main>
-  <footer class="footer shell"><a class="logo" href="index.html"><span>TR</span>TabletopRPC</a><p>Open source under the MIT License.</p><div><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a href="index.html">Home</a></div></footer>
+  <footer class="footer shell"><a class="logo" href="index.html"><img src="assets/tabletoprpc-logo.png" alt="">TabletopRPC</a><p>Open source under the MIT License.</p><div><a href="https://github.com/KopitarFan/tabletop-rpc">GitHub</a><a href="index.html">Home</a></div></footer>
 </body>
 </html>
