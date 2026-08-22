@@ -5,14 +5,16 @@
 [Project website](https://kopitarfan.github.io/tabletop-rpc/) ·
 [Live Tic-Tac-Toe](https://tabletoprpc.miguelrodriguez.net/) ·
 [Live Blackjack](https://tabletoprpc.miguelrodriguez.net/blackjack.html) ·
+[Live Mini Ludo](https://tabletoprpc.miguelrodriguez.net/ludo.html) ·
 [Swagger API](https://tabletoprpc.miguelrodriguez.net/docs)
 
 A game-agnostic **Kotlin/Spring Boot** web service for building online
 board-game clients.
 
-It includes polished Tic-Tac-Toe and Blackjack reference clients you can play
-in the browser. Every human choice and computer-controlled rule submits or
-resolves through the same public API; the UI never edits game state locally.
+It includes polished Tic-Tac-Toe, Blackjack, and Mini Ludo reference clients
+you can play in the browser. Every human choice and computer-controlled rule
+submits or resolves through the same public API; the UI never edits game state
+locally.
 
 The beta provides reusable objects for boards, spaces, pieces, cards, decks,
 dice, players, turns, and custom RPG-style values. Clients submit commands

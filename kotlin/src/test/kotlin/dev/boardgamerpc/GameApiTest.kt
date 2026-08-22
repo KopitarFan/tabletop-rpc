@@ -44,6 +44,14 @@ class GameApiTest(
             status { isOk() }
             content { contentTypeCompatibleWith("text/javascript") }
         }
+        mvc.get("/ludo.html").andExpect {
+            status { isOk() }
+            content { string(org.hamcrest.Matchers.containsString("Roll. Race.")) }
+        }
+        mvc.get("/ludo.js").andExpect {
+            status { isOk() }
+            content { contentTypeCompatibleWith("text/javascript") }
+        }
     }
 
     @Test
@@ -122,6 +130,27 @@ class GameApiTest(
                 .isIn("PLAYER_WIN", "DEALER_WIN", "PUSH")
             assertThat(stood.at("/state/board/values/dealer_revealed").asBoolean()).isTrue()
         }
+    }
+
+    @Test
+    fun `starts Mini Ludo and rolls its server authoritative die`() {
+        val game = request("/v1/games", """{"template_id":"mini-ludo","name":"Race"}""", 201)
+        val id = game["id"].asText()
+        val one = request("/v1/games/$id/players", """{"name":"Ada"}""", 201)
+        val two = request("/v1/games/$id/players", """{"name":"Computer"}""", 201)
+        val player = one.at("/players/0/id").asText()
+        val started = command(id, "start_game", player, two["version"].asLong(), "{}", "ludo-start")
+        assertThat(started.at("/state/board/pieces").size()).isEqualTo(4)
+        assertThat(started.at("/state/board/dice/ludo-d6/sides").asInt()).isEqualTo(6)
+
+        val rolled = command(
+            id, "roll_dice", player, started.at("/state/version").asLong(),
+            """{"dice_ids":["ludo-d6"]}""", "ludo-roll",
+        )
+        assertThat(rolled.at("/state/board/dice/ludo-d6/value").asInt()).isBetween(1, 6)
+        val hasMove = rolled.at("/state/board/values/movable_piece_ids").size() > 0
+        val turnAdvanced = rolled.at("/state/current_player_id").asText() != player
+        assertThat(hasMove || turnAdvanced).isTrue()
     }
 
     private fun command(
