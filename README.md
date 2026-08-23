@@ -6,12 +6,16 @@
 [Live Tic-Tac-Toe](https://tabletoprpc.miguelrodriguez.net/) ·
 [Live Blackjack](https://tabletoprpc.miguelrodriguez.net/blackjack.html) ·
 [Live Mini Ludo](https://tabletoprpc.miguelrodriguez.net/ludo.html) ·
+[Live Checkers](https://tabletoprpc.miguelrodriguez.net/checkers.html) ·
+[Live Hold'em](https://tabletoprpc.miguelrodriguez.net/holdem.html) ·
+[Live Color Clash](https://tabletoprpc.miguelrodriguez.net/color-clash.html) ·
 [Swagger API](https://tabletoprpc.miguelrodriguez.net/docs)
 
 A game-agnostic **Kotlin/Spring Boot** web service for building online
 board-game clients.
 
-It includes polished Tic-Tac-Toe, Blackjack, and Mini Ludo reference clients
+It includes six polished reference clients—Tic-Tac-Toe, Blackjack, Mini Ludo,
+Checkers, heads-up Hold'em, and the original Color Clash shedding game—
 you can play in the browser. Every human choice and computer-controlled rule
 submits or resolves through the same public API; the UI never edits game state
 locally.

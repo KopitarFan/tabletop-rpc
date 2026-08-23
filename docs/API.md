@@ -4,8 +4,8 @@ The Kotlin service exposes its JSON API at `http://localhost:8080`.
 Interactive Swagger UI is available at `/docs`, and the machine-readable
 OpenAPI 3 specification is available at `/openapi.json`.
 
-The playable Tic-Tac-Toe reference client is served from `/`, Blackjack from
-`/blackjack.html`, and Mini Ludo from `/ludo.html`. Their activity panels show
+The six playable reference clients are served from `/`, `/blackjack.html`,
+`/ludo.html`, `/checkers.html`, `/holdem.html`, and `/color-clash.html`. They show
 the same public calls documented below while you play.
 
 ## Resources
@@ -87,6 +87,7 @@ Commands all use the same envelope. `actor_id` identifies the player,
 | `start_game` | `{}` | `game_started` | Lock the lobby and choose the first turn |
 | `hit` | `{}` | `card_dealt` | Deal one Blackjack card to the acting player |
 | `stand` | `{}` | `game_finished` | Resolve the Blackjack dealer and outcome |
+| `poker_action` | `{"action":"check"}` | `poker_action_taken` | Check, bet, call, or fold in heads-up Hold'em |
 | `place_piece` | `{"space_id":"0-0"}` | `piece_placed` | Chess placement, Go stones, tokens |
 | `move_piece` | `{"piece_id":"pawn-1","to":"b4"}` | `piece_moved` | Grid, graph, or zone movement |
 | `draw_card` | `{"deck_id":"draw"}` | `card_drawn` | Move the top card to a private hand |
@@ -117,11 +118,9 @@ Create a game with `"template_id":"blackjack"`, join once, and send
 the same command endpoint. The server owns shuffling, dealing, ace valuation,
 dealer drawing, busts, pushes, and the final outcome.
 
-This demo exposed an important next protocol requirement: the generic snapshot
-currently contains the complete deck and every hand. The web client hides the
-dealer's hole card visually, but a production card game needs actor-specific
-state projections so unauthorized clients never receive hidden cards. That
-projection boundary is the next service capability to design.
+This first card demo exposed the need for actor-specific state. Hold'em and
+Color Clash now exercise that projection mechanism, while Blackjack remains a
+single-human game with a server-controlled dealer.
 
 ## Mini Ludo example
 
@@ -136,3 +135,25 @@ Ludo exposed a second design pressure: a command name such as `move_piece` has
 different payload and validation rules depending on the template. Clients need
 machine-readable, template-specific command schemas and current legal-action
 hints instead of relying on a global prose command catalog.
+
+## Checkers, Hold'em, and Color Clash
+
+- Checkers returns `board.values.legal_actions`, including forced captures and
+  chained jumps. The client renders those actions instead of duplicating rules.
+- Heads-up Hold'em progresses through preflop, flop, turn, river, and showdown
+  with fixed ten-chip bets and complete seven-card hand evaluation.
+- Color Clash is an original shedding game. `play_card` accepts
+  `chosen_color` for wild cards; skip, reverse, and draw-two cards alter the
+  normal turn sequence.
+
+Private card games can request a player-specific projection:
+
+```http
+GET /v1/games/{gameId}?viewer_id={playerId}
+```
+
+Before a Hold'em showdown, the response includes only that player's hole cards
+and public community cards. Color Clash similarly hides the opponent's hand
+and draw pile while publishing hand counts. `viewer_id` selects a projection;
+it is not authentication. A production deployment must bind viewer identity to
+authenticated player credentials before treating this as a security boundary.

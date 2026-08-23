@@ -57,8 +57,8 @@ class GameEngine(
     }
 
     /** Returns the latest authoritative snapshot for [id]. */
-    fun get(id: UUID): GameState = requireGame(id).let { game ->
-        synchronized(game) { game.snapshot() }
+    fun get(id: UUID, viewerId: UUID? = null): GameState = requireGame(id).let { game ->
+        synchronized(game) { game.snapshot(viewerId) }
     }
 
     /**
@@ -123,12 +123,13 @@ class GameEngine(
                 "play_card" -> play(game, command)
                 "shuffle_deck" -> shuffle(game, command)
                 "roll_dice" -> roll(game, command)
+                "poker_action" -> pokerAction(game, command)
                 "set_value" -> setValue(game, command)
                 "end_turn" -> advance(game, command.actorId)
                 else -> fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unknown command type: ${command.type}")
             }
             CommandResult(
-                state = game.snapshot(),
+                state = game.snapshot(command.actorId),
                 events = game.events.subList(before, game.events.size).toList(),
             ).also { game.replays[command.idempotencyKey] = it }
         }
@@ -136,12 +137,15 @@ class GameEngine(
 
     private fun start(game: MutableGame, command: Command) {
         if (game.status != GameStatus.LOBBY) fail(HttpStatus.CONFLICT, "Game is not in the lobby")
-        when (game.templateId) {
-            TIC_TAC_TOE.id -> startTicTacToe(game, command)
-            BLACKJACK.id -> startBlackjack(game, command)
-            LUDO.id -> startLudo(game, command)
-            else -> fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unsupported template: ${game.templateId}")
-        }
+            when (game.templateId) {
+                TIC_TAC_TOE.id -> startTicTacToe(game, command)
+                BLACKJACK.id -> startBlackjack(game, command)
+                LUDO.id -> startLudo(game, command)
+                CHECKERS.id -> startCheckers(game, command)
+                HOLDEM.id -> startHoldem(game, command)
+                COLOR_CLASH.id -> startColorClash(game, command)
+                else -> fail(HttpStatus.UNPROCESSABLE_ENTITY, "Unsupported template: ${game.templateId}")
+            }
     }
 
     private fun startTicTacToe(game: MutableGame, command: Command) {
@@ -190,6 +194,201 @@ class GameEngine(
         game.currentPlayerId = game.players.first().id
         game.record("game_started", command.actorId, mapOf("template_id" to LUDO.id))
     }
+
+    /** Initializes a standard 8x8 Checkers position and publishes the first legal-action set. */
+    private fun startCheckers(game: MutableGame, command: Command) {
+        if (game.players.size != 2) fail(HttpStatus.CONFLICT, "Checkers requires exactly two players")
+        if (command.actorId !in game.players.map { it.id }) fail(HttpStatus.FORBIDDEN, "Actor is not a player in this game")
+        game.players.forEach { player ->
+            val rows = if (player.seat == 0) 5..7 else 0..2
+            rows.forEach { row ->
+                (0..7).filter { column -> (row + column) % 2 == 1 }.forEach { column ->
+                    val id = "checker-${player.seat}-$row-$column"
+                    game.pieces[id] = Piece(
+                        id = id,
+                        kind = if (player.seat == 0) "coral" else "cyan",
+                        ownerId = player.id,
+                        location = "$row-$column",
+                        attributes = mapOf("king" to false),
+                    )
+                }
+            }
+        }
+        game.status = GameStatus.ACTIVE
+        game.currentPlayerId = game.players.first().id
+        updateCheckersActions(game)
+        game.record("game_started", command.actorId, mapOf("template_id" to CHECKERS.id))
+    }
+
+    /** Deals one heads-up Hold'em hand while keeping hole cards in player-keyed hands. */
+    private fun startHoldem(game: MutableGame, command: Command) {
+        if (game.players.size != 2) fail(HttpStatus.CONFLICT, "Heads-up Hold'em requires exactly two players")
+        if (command.actorId !in game.players.map { it.id }) fail(HttpStatus.FORBIDDEN, "Actor is not a player in this game")
+        val deck = Deck(id = HOLDEM_DECK, drawPile = standardDeck().toMutableList())
+        Collections.shuffle(deck.drawPile, random)
+        game.decks[HOLDEM_DECK] = deck
+        repeat(2) { game.players.forEach { player -> deal(deck, player.id.toString()) } }
+        game.players.forEach { player ->
+            game.values["chips_${player.id}"] = HOLDEM_STARTING_CHIPS
+            game.values["bet_${player.id}"] = 0
+        }
+        game.values["phase"] = "PREFLOP"
+        game.values["pot"] = 0
+        game.values["current_bet"] = 0
+        game.values["acted_ids"] = emptyList<String>()
+        game.values["winner"] = null
+        game.values["draw"] = false
+        game.status = GameStatus.ACTIVE
+        game.currentPlayerId = game.players.first().id
+        updatePokerActions(game)
+        game.record("game_started", command.actorId, mapOf("template_id" to HOLDEM.id))
+    }
+
+    /** Deals the original Color Clash shedding deck and exposes playable card IDs. */
+    private fun startColorClash(game: MutableGame, command: Command) {
+        if (game.players.size != 2) fail(HttpStatus.CONFLICT, "Color Clash requires exactly two players")
+        if (command.actorId !in game.players.map { it.id }) fail(HttpStatus.FORBIDDEN, "Actor is not a player in this game")
+        val cards = colorClashDeck().toMutableList()
+        Collections.shuffle(cards, random)
+        val deck = Deck(id = COLOR_CLASH_DECK, drawPile = cards)
+        game.decks[COLOR_CLASH_DECK] = deck
+        repeat(COLOR_CLASH_HAND_SIZE) { game.players.forEach { player -> deal(deck, player.id.toString()) } }
+        var opening = deck.drawPile.removeLast()
+        while (opening.suit == "wild") {
+            deck.drawPile.add(0, opening)
+            opening = deck.drawPile.removeLast()
+        }
+        deck.discardPile += opening
+        game.values["current_color"] = opening.suit
+        game.values["winner"] = null
+        game.status = GameStatus.ACTIVE
+        game.currentPlayerId = game.players.first().id
+        updateColorClashActions(game)
+        game.record("game_started", command.actorId, mapOf("template_id" to COLOR_CLASH.id, "top_card" to opening))
+    }
+
+    /** Applies a fixed-limit betting action and advances streets or resolves the showdown. */
+    private fun pokerAction(game: MutableGame, command: Command) {
+        if (game.templateId != HOLDEM.id) fail(HttpStatus.UNPROCESSABLE_ENTITY, "poker_action is only supported by Hold'em")
+        val actor = requireTurn(game, command.actorId)
+        val action = text(command.payload, "action").lowercase()
+        val legal = game.values["legal_actions"] as? List<*> ?: emptyList<Any?>()
+        if (action !in legal) fail(HttpStatus.UNPROCESSABLE_ENTITY, "Poker action is not legal now")
+        if (action == "fold") {
+            val winner = game.players.first { it.id != actor.id }.id
+            finishHoldem(game, winner, false, "fold")
+            return
+        }
+        val currentBet = (game.values["current_bet"] as Number).toInt()
+        val actorBetKey = "bet_${actor.id}"
+        val actorBet = (game.values[actorBetKey] as Number).toInt()
+        val cost = when (action) {
+            "bet" -> HOLDEM_BET
+            "call" -> currentBet - actorBet
+            else -> 0
+        }
+        val chipsKey = "chips_${actor.id}"
+        val chips = (game.values[chipsKey] as Number).toInt()
+        if (cost > chips) fail(HttpStatus.CONFLICT, "Player does not have enough chips")
+        game.values[chipsKey] = chips - cost
+        game.values[actorBetKey] = actorBet + cost
+        game.values["pot"] = (game.values["pot"] as Number).toInt() + cost
+        if (action == "bet") game.values["current_bet"] = actorBet + cost
+        val acted = (game.values["acted_ids"] as List<*>).filterIsInstance<String>().toMutableSet()
+        acted += actor.id.toString()
+        game.values["acted_ids"] = acted.toList()
+        game.record("poker_action_taken", actor.id, mapOf("action" to action, "amount" to cost))
+        val betsEqual = game.players.map { (game.values["bet_${it.id}"] as Number).toInt() }.distinct().size == 1
+        if (acted.size == 2 && betsEqual) advanceHoldemStreet(game, actor.id) else {
+            advance(game, actor.id)
+            updatePokerActions(game)
+        }
+    }
+
+    private fun updatePokerActions(game: MutableGame) {
+        val actorId = game.currentPlayerId ?: return
+        val currentBet = (game.values["current_bet"] as Number).toInt()
+        val actorBet = (game.values["bet_$actorId"] as Number).toInt()
+        game.values["legal_actions"] = if (currentBet > actorBet) listOf("call", "fold") else listOf("check", "bet", "fold")
+    }
+
+    private fun advanceHoldemStreet(game: MutableGame, actorId: UUID) {
+        val deck = game.decks.getValue(HOLDEM_DECK)
+        game.values["acted_ids"] = emptyList<String>()
+        game.values["current_bet"] = 0
+        game.players.forEach { game.values["bet_${it.id}"] = 0 }
+        when (game.values["phase"]) {
+            "PREFLOP" -> { repeat(3) { deal(deck, COMMUNITY_HAND) }; game.values["phase"] = "FLOP" }
+            "FLOP" -> { deal(deck, COMMUNITY_HAND); game.values["phase"] = "TURN" }
+            "TURN" -> { deal(deck, COMMUNITY_HAND); game.values["phase"] = "RIVER" }
+            else -> { resolveHoldem(game); return }
+        }
+        game.currentPlayerId = game.players.first().id
+        updatePokerActions(game)
+        game.record("poker_street_started", actorId, mapOf("phase" to game.values["phase"]))
+    }
+
+    private fun resolveHoldem(game: MutableGame) {
+        val deck = game.decks.getValue(HOLDEM_DECK)
+        val community = deck.hands.getValue(COMMUNITY_HAND)
+        val scores = game.players.associate { player -> player.id to bestPokerScore(deck.hands.getValue(player.id.toString()) + community) }
+        val comparison = comparePokerScores(scores.getValue(game.players[0].id), scores.getValue(game.players[1].id))
+        when {
+            comparison > 0 -> finishHoldem(game, game.players[0].id, false, "showdown")
+            comparison < 0 -> finishHoldem(game, game.players[1].id, false, "showdown")
+            else -> finishHoldem(game, null, true, "showdown")
+        }
+    }
+
+    private fun finishHoldem(game: MutableGame, winner: UUID?, draw: Boolean, reason: String) {
+        game.status = GameStatus.FINISHED
+        game.currentPlayerId = null
+        game.values["winner"] = winner?.toString()
+        game.values["draw"] = draw
+        game.values["legal_actions"] = emptyList<String>()
+        game.values["phase"] = "SHOWDOWN"
+        game.values["revealed"] = true
+        game.record("game_finished", winner, mapOf("winner" to winner?.toString(), "draw" to draw, "reason" to reason))
+    }
+
+    /** Returns a lexicographically comparable five-card category and kicker vector. */
+    private fun bestPokerScore(cards: List<Card>): List<Int> {
+        val combinations = mutableListOf<List<Card>>()
+        for (a in 0 until cards.size - 4) for (b in a + 1 until cards.size - 3)
+            for (c in b + 1 until cards.size - 2) for (d in c + 1 until cards.size - 1)
+                for (e in d + 1 until cards.size) combinations += listOf(cards[a], cards[b], cards[c], cards[d], cards[e])
+        return combinations.map(::pokerScore).maxWithOrNull(::comparePokerScores) ?: emptyList()
+    }
+
+    private fun pokerScore(cards: List<Card>): List<Int> {
+        val ranks = cards.map { pokerRank(it.rank) }.sortedDescending()
+        val groups = ranks.groupingBy { it }.eachCount().entries.sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key })
+        val flush = cards.map { it.suit }.distinct().size == 1
+        val unique = ranks.distinct().toMutableList()
+        if (14 in unique) unique += 1
+        val straightHigh = unique.sortedDescending().windowed(5).firstOrNull { it.first() - it.last() == 4 }?.first()
+        return when {
+            flush && straightHigh != null -> listOf(8, straightHigh)
+            groups[0].value == 4 -> listOf(7, groups[0].key, groups[1].key)
+            groups[0].value == 3 && groups[1].value == 2 -> listOf(6, groups[0].key, groups[1].key)
+            flush -> listOf(5) + ranks
+            straightHigh != null -> listOf(4, straightHigh)
+            groups[0].value == 3 -> listOf(3, groups[0].key) + groups.drop(1).map { it.key }.sortedDescending()
+            groups[0].value == 2 && groups[1].value == 2 -> listOf(2, maxOf(groups[0].key, groups[1].key), minOf(groups[0].key, groups[1].key), groups[2].key)
+            groups[0].value == 2 -> listOf(1, groups[0].key) + groups.drop(1).map { it.key }.sortedDescending()
+            else -> listOf(0) + ranks
+        }
+    }
+
+    private fun comparePokerScores(left: List<Int>, right: List<Int>): Int {
+        for (index in 0 until maxOf(left.size, right.size)) {
+            val comparison = (left.getOrElse(index) { 0 }).compareTo(right.getOrElse(index) { 0 })
+            if (comparison != 0) return comparison
+        }
+        return 0
+    }
+
+    private fun pokerRank(rank: String?): Int = when (rank) { "A" -> 14; "K" -> 13; "Q" -> 12; "J" -> 11; else -> rank?.toIntOrNull() ?: 0 }
 
     private fun place(game: MutableGame, command: Command) {
         if (game.templateId != TIC_TAC_TOE.id) fail(HttpStatus.UNPROCESSABLE_ENTITY, "place_piece is not supported by this template")
@@ -298,6 +497,10 @@ class GameEngine(
             moveLudo(game, command)
             return
         }
+        if (game.templateId == CHECKERS.id) {
+            moveChecker(game, command)
+            return
+        }
         requireTurn(game, command.actorId)
         val pieceId = text(command.payload, "piece_id")
         val destination = text(command.payload, "to")
@@ -315,7 +518,99 @@ class GameEngine(
         )
     }
 
+    /** Applies one server-advertised Checkers move, including forced and chained captures. */
+    private fun moveChecker(game: MutableGame, command: Command) {
+        val actor = requireTurn(game, command.actorId)
+        val pieceId = text(command.payload, "piece_id")
+        val destination = text(command.payload, "to")
+        val legal = checkersActions(game, actor.id)
+        val action = legal.firstOrNull { it["piece_id"] == pieceId && it["to"] == destination }
+            ?: fail(HttpStatus.UNPROCESSABLE_ENTITY, "Move is not legal in the current position")
+        val piece = game.pieces.getValue(pieceId)
+        val capturedId = action["captured_piece_id"] as? String
+        if (capturedId != null) {
+            game.pieces.remove(capturedId)
+            game.record("piece_captured", actor.id, mapOf("piece_id" to capturedId, "by" to pieceId))
+        }
+        val row = destination.substringBefore('-').toInt()
+        val promoted = piece.attributes["king"] == true || (actor.seat == 0 && row == 0) || (actor.seat == 1 && row == 7)
+        game.pieces[pieceId] = piece.copy(location = destination, attributes = mapOf("king" to promoted))
+        game.record("piece_moved", actor.id, mapOf("piece_id" to pieceId, "to" to destination))
+        if (promoted && piece.attributes["king"] != true) game.record("piece_promoted", actor.id, mapOf("piece_id" to pieceId))
+
+        val remainingEnemies = game.pieces.values.any { it.ownerId != actor.id }
+        if (!remainingEnemies) {
+            finishCheckers(game, actor.id)
+            return
+        }
+        val chained = if (capturedId != null) checkerMoves(game, game.pieces.getValue(pieceId), capturesOnly = true) else emptyList()
+        if (chained.isNotEmpty()) {
+            game.values["forced_piece_id"] = pieceId
+            game.values["legal_actions"] = chained
+            game.record("capture_continues", actor.id, mapOf("piece_id" to pieceId))
+            return
+        }
+        game.values["forced_piece_id"] = null
+        advance(game, actor.id)
+        updateCheckersActions(game)
+        if ((game.values["legal_actions"] as List<*>).isEmpty()) finishCheckers(game, actor.id)
+    }
+
+    private fun finishCheckers(game: MutableGame, winnerId: UUID) {
+        game.status = GameStatus.FINISHED
+        game.currentPlayerId = null
+        game.values["winner"] = winnerId.toString()
+        game.values["legal_actions"] = emptyList<Map<String, String>>()
+        game.record("game_finished", winnerId, mapOf("winner" to winnerId.toString()))
+    }
+
+    /** Recomputes discoverable legal actions, enforcing capture priority. */
+    private fun updateCheckersActions(game: MutableGame) {
+        val actorId = game.currentPlayerId ?: return
+        game.values["legal_actions"] = checkersActions(game, actorId)
+    }
+
+    private fun checkersActions(game: MutableGame, actorId: UUID): List<Map<String, String>> {
+        val forced = game.values["forced_piece_id"] as? String
+        val pieces = game.pieces.values.filter { it.ownerId == actorId && (forced == null || it.id == forced) }
+        val captures = pieces.flatMap { checkerMoves(game, it, capturesOnly = true) }
+        return if (captures.isNotEmpty()) captures else pieces.flatMap { checkerMoves(game, it, capturesOnly = false) }
+    }
+
+    private fun checkerMoves(game: MutableGame, piece: Piece, capturesOnly: Boolean): List<Map<String, String>> {
+        val player = game.players.first { it.id == piece.ownerId }
+        val location = piece.location ?: return emptyList()
+        val row = location.substringBefore('-').toInt()
+        val column = location.substringAfter('-').toInt()
+        val directions = if (piece.attributes["king"] == true) listOf(-1, 1) else listOf(if (player.seat == 0) -1 else 1)
+        val occupied = game.pieces.values.associateBy { it.location }
+        val captures = directions.flatMap { rowDelta ->
+            listOf(-1, 1).mapNotNull { columnDelta ->
+                val middle = occupied["${row + rowDelta}-${column + columnDelta}"] ?: return@mapNotNull null
+                val target = "${row + rowDelta * 2}-${column + columnDelta * 2}"
+                val targetRow = row + rowDelta * 2
+                val targetColumn = column + columnDelta * 2
+                if (middle.ownerId != piece.ownerId && targetRow in 0..7 && targetColumn in 0..7 && target !in occupied) {
+                    mapOf("piece_id" to piece.id, "to" to target, "captured_piece_id" to middle.id)
+                } else null
+            }
+        }
+        if (capturesOnly || captures.isNotEmpty()) return captures
+        return directions.flatMap { rowDelta ->
+            listOf(-1, 1).mapNotNull { columnDelta ->
+                val targetRow = row + rowDelta
+                val targetColumn = column + columnDelta
+                val target = "$targetRow-$targetColumn"
+                if (targetRow in 0..7 && targetColumn in 0..7 && target !in occupied) mapOf("piece_id" to piece.id, "to" to target) else null
+            }
+        }
+    }
+
     private fun draw(game: MutableGame, command: Command) {
+        if (game.templateId == COLOR_CLASH.id) {
+            drawColorClash(game, command)
+            return
+        }
         requireTurn(game, command.actorId)
         val deck = game.decks[text(command.payload, "deck_id")]
             ?: fail(HttpStatus.CONFLICT, "Deck does not exist or is empty")
@@ -326,6 +621,10 @@ class GameEngine(
     }
 
     private fun play(game: MutableGame, command: Command) {
+        if (game.templateId == COLOR_CLASH.id) {
+            playColorClash(game, command)
+            return
+        }
         requireTurn(game, command.actorId)
         val deck = game.decks[text(command.payload, "deck_id")]
             ?: fail(HttpStatus.UNPROCESSABLE_ENTITY, "Card is not in the actor's hand")
@@ -337,6 +636,75 @@ class GameEngine(
         hand.remove(card)
         deck.discardPile += card
         game.record("card_played", command.actorId, mapOf("deck_id" to deck.id, "card" to card))
+    }
+
+    /** Draws one card and ends the turn, reshuffling the discard pile when necessary. */
+    private fun drawColorClash(game: MutableGame, command: Command) {
+        val actor = requireTurn(game, command.actorId)
+        val deck = game.decks.getValue(COLOR_CLASH_DECK)
+        refillColorClashDeck(deck)
+        val card = deal(deck, actor.id.toString())
+        game.record("card_drawn", actor.id, mapOf("card_id" to card.id))
+        advance(game, actor.id)
+        updateColorClashActions(game)
+    }
+
+    /** Plays a matching color/rank or wild card and applies its turn effect. */
+    private fun playColorClash(game: MutableGame, command: Command) {
+        val actor = requireTurn(game, command.actorId)
+        val cardId = text(command.payload, "card_id")
+        val legal = game.values["legal_card_ids"] as? List<*> ?: emptyList<Any?>()
+        if (cardId !in legal) fail(HttpStatus.UNPROCESSABLE_ENTITY, "Card cannot be played on the current discard")
+        val deck = game.decks.getValue(COLOR_CLASH_DECK)
+        val hand = deck.hands.getValue(actor.id.toString())
+        val card = hand.first { it.id == cardId }
+        val chosenColor = if (card.suit == "wild") text(command.payload, "chosen_color") else card.suit!!
+        if (chosenColor !in COLOR_CLASH_COLORS) fail(HttpStatus.UNPROCESSABLE_ENTITY, "chosen_color must be a Color Clash color")
+        hand.remove(card)
+        deck.discardPile += card
+        game.values["current_color"] = chosenColor
+        game.record("card_played", actor.id, mapOf("card" to card, "chosen_color" to chosenColor))
+        if (hand.isEmpty()) {
+            game.status = GameStatus.FINISHED
+            game.currentPlayerId = null
+            game.values["winner"] = actor.id.toString()
+            game.values["legal_card_ids"] = emptyList<String>()
+            game.record("game_finished", actor.id, mapOf("winner" to actor.id.toString()))
+            return
+        }
+        val opponent = game.players.first { it.id != actor.id }
+        when (card.rank) {
+            "draw-two" -> {
+                repeat(2) { refillColorClashDeck(deck); deal(deck, opponent.id.toString()) }
+                game.record("cards_forced", actor.id, mapOf("player_id" to opponent.id.toString(), "count" to 2))
+            }
+            "skip", "reverse" -> game.record("turn_skipped", actor.id, mapOf("player_id" to opponent.id.toString()))
+            else -> advance(game, actor.id)
+        }
+        updateColorClashActions(game)
+    }
+
+    private fun updateColorClashActions(game: MutableGame) {
+        val actorId = game.currentPlayerId ?: return
+        val deck = game.decks.getValue(COLOR_CLASH_DECK)
+        game.players.forEach { player ->
+            game.values["hand_count_${player.id}"] = deck.hands[player.id.toString()]?.size ?: 0
+        }
+        val top = deck.discardPile.last()
+        val color = game.values["current_color"] as String
+        game.values["legal_card_ids"] = deck.hands.getValue(actorId.toString()).filter { card ->
+            card.suit == "wild" || card.suit == color || card.rank == top.rank
+        }.map { it.id }
+    }
+
+    private fun refillColorClashDeck(deck: Deck) {
+        if (deck.drawPile.isNotEmpty()) return
+        if (deck.discardPile.size <= 1) fail(HttpStatus.CONFLICT, "No cards remain to draw")
+        val top = deck.discardPile.removeLast()
+        deck.drawPile += deck.discardPile
+        deck.discardPile.clear()
+        deck.discardPile += top
+        Collections.shuffle(deck.drawPile, random)
     }
 
     private fun shuffle(game: MutableGame, command: Command) {
@@ -515,6 +883,24 @@ class GameEngine(
                     }
                     spaces["finished-$seat"] = Space("finished-$seat", "Player ${seat + 1} finish")
                 }
+            } else if (templateId == CHECKERS.id) {
+                values["winner"] = null
+                values["forced_piece_id"] = null
+                values["legal_actions"] = emptyList<Map<String, String>>()
+                for (row in 0..7) for (column in 0..7) {
+                    val id = "$row-$column"
+                    spaces[id] = Space(id, "Row ${row + 1}, Column ${column + 1}")
+                }
+            } else if (templateId == HOLDEM.id) {
+                values["phase"] = "LOBBY"
+                values["winner"] = null
+                values["draw"] = false
+                values["revealed"] = false
+                values["legal_actions"] = emptyList<String>()
+            } else if (templateId == COLOR_CLASH.id) {
+                values["winner"] = null
+                values["current_color"] = null
+                values["legal_card_ids"] = emptyList<String>()
             }
         }
 
@@ -533,7 +919,7 @@ class GameEngine(
         }
 
         /** Deep-copies mutable collections into a client-safe value snapshot. */
-        fun snapshot(): GameState = GameState(
+        fun snapshot(viewerId: UUID? = null): GameState = GameState(
             id = id,
             templateId = templateId,
             name = name,
@@ -545,10 +931,14 @@ class GameEngine(
                 spaces = spaces.toMap(),
                 pieces = pieces.toMap(),
                 decks = decks.mapValues { (_, deck) ->
+                    val privateHands = (templateId == HOLDEM.id && values["revealed"] != true) || templateId == COLOR_CLASH.id
+                    val projectedHands = if (privateHands) {
+                        deck.hands.filterKeys { key -> key == viewerId?.toString() || key == COMMUNITY_HAND }
+                    } else deck.hands
                     deck.copy(
-                        drawPile = deck.drawPile.toMutableList(),
+                        drawPile = if (templateId == HOLDEM.id || templateId == COLOR_CLASH.id) mutableListOf() else deck.drawPile.toMutableList(),
                         discardPile = deck.discardPile.toMutableList(),
-                        hands = deck.hands.mapValues { it.value.toMutableList() }.toMutableMap(),
+                        hands = projectedHands.mapValues { it.value.toMutableList() }.toMutableMap(),
                     )
                 },
                 dice = dice.toMap(),
@@ -584,7 +974,31 @@ class GameEngine(
             description = "A compact two-player race with dice entry, captures, home paths, and extra turns.",
         )
 
-        private val TEMPLATES = listOf(TIC_TAC_TOE, BLACKJACK, LUDO)
+        private val CHECKERS = TemplateSummary(
+            id = "checkers",
+            name = "Checkers",
+            minPlayers = 2,
+            maxPlayers = 2,
+            description = "Two players move diagonally with forced captures, chained jumps, and kings.",
+        )
+
+        private val HOLDEM = TemplateSummary(
+            id = "heads-up-holdem",
+            name = "Heads-Up Hold'em",
+            minPlayers = 2,
+            maxPlayers = 2,
+            description = "A compact fixed-limit Hold'em hand with private cards, betting streets, folding, and showdown scoring.",
+        )
+
+        private val COLOR_CLASH = TemplateSummary(
+            id = "color-clash",
+            name = "Color Clash",
+            minPlayers = 2,
+            maxPlayers = 2,
+            description = "An original shedding game with matching colors, action cards, wild choices, and private hands.",
+        )
+
+        private val TEMPLATES = listOf(TIC_TAC_TOE, BLACKJACK, LUDO, CHECKERS, HOLDEM, COLOR_CLASH)
         private const val BLACKJACK_DECK = "shoe"
         private const val DEALER_HAND = "dealer"
         private const val LUDO_DIE = "ludo-d6"
@@ -592,6 +1006,13 @@ class GameEngine(
         private const val LUDO_HOME_LENGTH = 4
         private const val LUDO_FINISH = LUDO_TRACK_LENGTH + LUDO_HOME_LENGTH
         private const val LUDO_PIECES_PER_PLAYER = 2
+        private const val HOLDEM_DECK = "holdem-deck"
+        private const val COMMUNITY_HAND = "community"
+        private const val HOLDEM_STARTING_CHIPS = 100
+        private const val HOLDEM_BET = 10
+        private const val COLOR_CLASH_DECK = "color-clash-deck"
+        private const val COLOR_CLASH_HAND_SIZE = 7
+        private val COLOR_CLASH_COLORS = listOf("coral", "cyan", "gold", "green")
         private val LUDO_STARTS = listOf(0, 12)
         private val LUDO_SAFE_SPACES = setOf("track-0", "track-12")
 
@@ -604,6 +1025,19 @@ class GameEngine(
                     rank = rank,
                 )
             }
+        }
+
+        /** Builds a compact original deck; duplicated numbers keep rounds varied without copying a commercial deck. */
+        private fun colorClashDeck(): List<Card> {
+            val colored = COLOR_CLASH_COLORS.flatMap { color ->
+                (0..9).flatMap { rank -> (if (rank == 0) 1..1 else 1..2).map { copy ->
+                    Card("$color-$rank-$copy", "$color $rank", color, rank.toString())
+                } } + listOf("skip", "reverse", "draw-two").flatMap { action -> (1..2).map { copy ->
+                    Card("$color-$action-$copy", "$color ${action.replace('-', ' ')}", color, action)
+                } }
+            }
+            val wilds = (1..4).map { copy -> Card("wild-$copy", "Wild color", "wild", "wild") }
+            return colored + wilds
         }
 
         private val WINNING_LINES = listOf(

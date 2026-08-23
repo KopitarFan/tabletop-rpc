@@ -54,6 +54,13 @@ class GameApiTest(
             content { string(org.hamcrest.Matchers.containsString("Move pawn")) }
             content { string(org.hamcrest.Matchers.containsString("moves.length===1")) }
         }
+        listOf("checkers", "holdem", "color-clash").forEach { demo ->
+            mvc.get("/$demo.html").andExpect { status { isOk() } }
+            mvc.get("/$demo.js").andExpect {
+                status { isOk() }
+                content { contentTypeCompatibleWith("text/javascript") }
+            }
+        }
     }
 
     @Test
@@ -153,6 +160,55 @@ class GameApiTest(
         val hasMove = rolled.at("/state/board/values/movable_piece_ids").size() > 0
         val turnAdvanced = rolled.at("/state/current_player_id").asText() != player
         assertThat(hasMove || turnAdvanced).isTrue()
+    }
+
+    @Test
+    fun `Checkers publishes legal actions and applies a server-approved move`() {
+        val game = request("/v1/games", """{"template_id":"checkers","name":"Board"}""", 201)
+        val id = game["id"].asText()
+        val one = request("/v1/games/$id/players", """{"name":"Ada"}""", 201)
+        val two = request("/v1/games/$id/players", """{"name":"Computer"}""", 201)
+        val player = one.at("/players/0/id").asText()
+        val started = command(id, "start_game", player, two["version"].asLong(), "{}", "checkers-start")
+        assertThat(started.at("/state/board/pieces").size()).isEqualTo(24)
+        val action = started.at("/state/board/values/legal_actions/0")
+        val moved = command(
+            id, "move_piece", player, started.at("/state/version").asLong(),
+            """{"piece_id":"${action["piece_id"].asText()}","to":"${action["to"].asText()}"}""", "checkers-move",
+        )
+        assertThat(moved.at("/events/0/type").asText()).isEqualTo("piece_moved")
+    }
+
+    @Test
+    fun `Holdem projects private hands and advances its betting street`() {
+        val game = request("/v1/games", """{"template_id":"heads-up-holdem","name":"Cards"}""", 201)
+        val id = game["id"].asText()
+        val one = request("/v1/games/$id/players", """{"name":"Ada"}""", 201)
+        val two = request("/v1/games/$id/players", """{"name":"Bot"}""", 201)
+        val first = one.at("/players/0/id").asText()
+        val second = two.at("/players/1/id").asText()
+        val started = command(id, "start_game", first, two["version"].asLong(), "{}", "holdem-start")
+        val projected = mapper.readTree(mvc.get("/v1/games/$id") { param("viewer_id", first) }.andReturn().response.contentAsString)
+        assertThat(projected.at("/board/decks/holdem-deck/hands/$first").size()).isEqualTo(2)
+        assertThat(projected.at("/board/decks/holdem-deck/hands").has(second)).isFalse()
+        val checked = command(id, "poker_action", first, started.at("/state/version").asLong(), """{"action":"check"}""", "holdem-check-1")
+        val street = command(id, "poker_action", second, checked.at("/state/version").asLong(), """{"action":"check"}""", "holdem-check-2")
+        assertThat(street.at("/state/board/values/phase").asText()).isEqualTo("FLOP")
+    }
+
+    @Test
+    fun `Color Clash hides the opponent hand and publishes playable cards`() {
+        val game = request("/v1/games", """{"template_id":"color-clash","name":"Colors"}""", 201)
+        val id = game["id"].asText()
+        val one = request("/v1/games/$id/players", """{"name":"Ada"}""", 201)
+        val two = request("/v1/games/$id/players", """{"name":"Bot"}""", 201)
+        val first = one.at("/players/0/id").asText()
+        val second = two.at("/players/1/id").asText()
+        command(id, "start_game", first, two["version"].asLong(), "{}", "clash-start")
+        val projected = mapper.readTree(mvc.get("/v1/games/$id") { param("viewer_id", first) }.andReturn().response.contentAsString)
+        assertThat(projected.at("/board/decks/color-clash-deck/hands/$first").size()).isEqualTo(7)
+        assertThat(projected.at("/board/decks/color-clash-deck/hands").has(second)).isFalse()
+        assertThat(projected.at("/board/values/hand_count_$second").asInt()).isEqualTo(7)
     }
 
     private fun command(

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Play Tic-Tac-Toe, Blackjack, and Mini Ludo through the TabletopRPC API.">
+  <meta name="description" content="Play six reference games through the TabletopRPC API.">
   <meta property="og:title" content="TabletopRPC — One API. Any tabletop.">
   <meta property="og:description" content="Play three live reference clients powered by one authoritative tabletop API.">
   <meta property="og:type" content="website">
@@ -60,11 +60,14 @@
     </section>
 
     <section id="game-demos" class="demo-showcase" aria-labelledby="demo-title">
-      <div class="showcase-heading"><div><p class="eyebrow">Three live reference clients</p><h2 id="demo-title">Pick your<br><em>API playground.</em></h2></div><p>Every game below uses the same public service as a real client. Together they exercise boards, pieces, cards, decks, dice, turns, hidden information, and computer players.</p></div>
+      <div class="showcase-heading"><div><p class="eyebrow">Six live reference clients</p><h2 id="demo-title">Pick your<br><em>API playground.</em></h2></div><p>Every game below uses the same public service as a real client. Together they exercise boards, pieces, cards, decks, dice, turns, private views, legal actions, and computer players.</p></div>
       <div class="showcase-grid">
         <article class="demo-card"><div class="demo-visual tic-visual" aria-hidden="true"><b>×</b><i></i><em>○</em><i></i><b>×</b><i></i><em>○</em><i></i><b>×</b></div><div class="demo-card-body"><small>GRID · PIECES · INVITES</small><h3>Tic-Tac-Toe</h3><p>Challenge the minimax bot or create a link and invite a friend.</p><a href="./">Play Tic-Tac-Toe <span>→</span></a></div></article>
         <article class="demo-card"><div class="demo-visual cards-visual" aria-hidden="true"><b>A<small>♠</small></b><b>K<small>♥</small></b></div><div class="demo-card-body"><small>CARDS · DECKS · HIDDEN STATE</small><h3>Blackjack</h3><p>Hit or stand against a dealer backed by server-owned shuffling and scoring.</p><a href="blackjack.html">Play Blackjack <span>→</span></a></div></article>
         <article class="demo-card"><div class="demo-visual race-visual" aria-hidden="true"><b></b><b></b><b></b><b></b><i>6</i></div><div class="demo-card-body"><small>DICE · MOVEMENT · CAPTURES</small><h3>Mini Ludo</h3><p>Race an API bot through safe spaces, captures, home lanes, and exact rolls.</p><a href="ludo.html">Play Mini Ludo <span>→</span></a></div></article>
+        <article class="demo-card"><div class="demo-visual checker-visual" aria-hidden="true"><b></b><b></b><b></b><b></b></div><div class="demo-card-body"><small>LEGAL ACTIONS · FORCED CAPTURES</small><h3>Checkers</h3><p>Follow server-published moves through jumps, capture chains, and kings.</p><a href="checkers.html">Play Checkers <span>→</span></a></div></article>
+        <article class="demo-card"><div class="demo-visual cards-visual" aria-hidden="true"><b>A<small>♠</small></b><b>K<small>♥</small></b></div><div class="demo-card-body"><small>PRIVATE VIEWS · BETTING · SHOWDOWN</small><h3>Heads-Up Hold’em</h3><p>Play a fixed-limit hand while the API protects hole cards and scores seven-card showdowns.</p><a href="holdem.html">Play Hold’em <span>→</span></a></div></article>
+        <article class="demo-card"><div class="demo-visual clash-visual" aria-hidden="true"><b>7</b><b>↺</b><b>W</b></div><div class="demo-card-body"><small>MULTI-STEP CHOICES · ACTION CARDS</small><h3>Color Clash</h3><p>Match colors and ranks, trigger turn effects, and choose colors for wild cards.</p><a href="color-clash.html">Play Color Clash <span>→</span></a></div></article>
       </div>
       <p class="showcase-note">Want to inspect the calls? Keep Swagger open beside a game and watch the API activity feed. <a href="docs">Open the docs ↗</a></p>
     </section>

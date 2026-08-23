@@ -74,7 +74,11 @@ class GameController(
         content = [Content(schema = Schema(implementation = ApiError::class))],
     )
     /** Fetches the newest snapshot, typically after a client version conflict. */
-    fun game(@PathVariable @Parameter(description = "Game session UUID") id: UUID): GameState = engine.get(id)
+    fun game(
+        @PathVariable @Parameter(description = "Game session UUID") id: UUID,
+        @RequestParam(name = "viewer_id", required = false)
+        @Parameter(description = "Optional player UUID used to project private information") viewerId: UUID?,
+    ): GameState = engine.get(id, viewerId)
 
     @PostMapping("/v1/games/{id}/players")
     @ResponseStatus(HttpStatus.CREATED)
