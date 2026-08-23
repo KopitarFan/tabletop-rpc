@@ -7,8 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema
  * Server-authoritative card container.
  *
  * The last item in [drawPile] is the top card. Hand keys are player UUIDs
- * encoded as strings. Hidden-information filtering is a planned projection
- * concern; this beta returns complete snapshots.
+ * encoded as strings. Templates with hidden information can return a
+ * player-specific projection that omits other hands and the draw pile.
  */
 @Schema(description = "Server-ordered card piles and player hands")
 data class Deck(
